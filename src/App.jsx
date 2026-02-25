@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { initializeApp } from "firebase/app";
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, OAuthProvider } from "firebase/auth";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, OAuthProvider } from "firebase/auth";
 import { getFirestore, doc, getDoc, getDocs, setDoc, collection, query, where, onSnapshot, updateDoc, addDoc, deleteDoc } from "firebase/firestore";
 import {
   Users,
@@ -29,19 +29,23 @@ import {
   UserPlus,
   ToggleLeft,
   ToggleRight,
-  Mail
+  Mail,
+  Building,
+  Key
 } from 'lucide-react';
 
 /**
  * FIREBASE INITIALIZATION
+ * Kept exactly as Vite Environment Variables. 
+ * Note: Ignore the [WARNING] in the preview window; this is required for Cloudflare!
  */
 const firebaseConfig = {
-  apiKey: "AIzaSy" + "ArrlwfXCglM" + "op8RBLKbphZhtJ" + "JJ4leYJI",
-  authDomain: "easyspeakai.firebaseapp.com",
-  projectId: "easyspeakai",
-  storageBucket: "easyspeakai.firebasestorage.app",
-  messagingSenderId: "866097074609",
-  appId: "1:866097074609:web:0215ce7948c97289512d90"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
 const app = initializeApp(firebaseConfig);
@@ -53,22 +57,30 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
+  
+  // Login / Reg Form State
+  const [isRegistering, setIsRegistering] = useState(false);
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
+  const [regName, setRegName] = useState('');
+  const [regInviteCode, setRegInviteCode] = useState('');
   const [loginError, setLoginError] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   // --- Dashboard Data State ---
   const [activeTab, setActiveTab] = useState('students');
   const [students, setStudents] = useState([]);
+  const [schools, setSchools] = useState([]); 
   const [library, setLibrary] = useState([]);
   const [staff, setStaff] = useState([]); 
-  const [pendingInvites, setPendingInvites] = useState([]); // Pending Invites
-  const [orgDetails, setOrgDetails] = useState(null); // Current District's Info
+  const [pendingInvites, setPendingInvites] = useState([]);
+  const [orgDetails, setOrgDetails] = useState(null);
   
   // --- Super Admin State ---
   const [systemUsers, setSystemUsers] = useState([]); 
   const [organizations, setOrganizations] = useState([]);
+  const [saInviteEmail, setSaInviteEmail] = useState('');
+  const [saInviteOrgId, setSaInviteOrgId] = useState('');
 
   const [dataLoading, setDataLoading] = useState(true);
   const [selectedStudent, setSelectedStudent] = useState(null);
@@ -82,11 +94,26 @@ export default function App() {
   const [newPageTitle, setNewPageTitle] = useState('');
   const [newPageIcon, setNewPageIcon] = useState('📄');
 
+  // Add Student Modal
   const [showNewStudentModal, setShowNewStudentModal] = useState(false);
   const [newStudentName, setNewStudentName] = useState('');
+  const [newStudentSchoolId, setNewStudentSchoolId] = useState('');
 
+  // Assign Existing Student/Teacher Modals
+  const [editingStudentSchool, setEditingStudentSchool] = useState(null);
+  const [editStudentSchoolId, setEditStudentSchoolId] = useState('');
+  const [editingTeacherSchools, setEditingTeacherSchools] = useState(null);
+  const [editTeacherAllSchools, setEditTeacherAllSchools] = useState(false);
+  const [editTeacherSchoolList, setEditTeacherSchoolList] = useState([]);
+
+  // Invite Modal
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteAllSchools, setInviteAllSchools] = useState(true);
+  const [inviteSchools, setInviteSchools] = useState([]);
+
+  // Manage Schools Form
+  const [newSchoolName, setNewSchoolName] = useState('');
 
   // --- Push to Student State ---
   const [showPushModal, setShowPushModal] = useState(false);
@@ -109,38 +136,32 @@ export default function App() {
             setUserProfile(userSnap.data());
             setUser(currentUser);
           } else {
-            // --- NEW USER CREATION: HARD REJECT IF NOT INVITED ---
+            // NEW USER CREATION (OAuth/SSO Fallback)
             try {
-                // Fetch invites by email
                 const qInvite = query(collection(db, 'invites'), where('email', '==', currentUser.email.toLowerCase()));
                 const inviteDocs = await getDocs(qInvite);
-                
-                // Filter for pending status in memory
                 const pendingInvite = inviteDocs.docs.find(doc => doc.data().status === 'pending');
                 
                 if (pendingInvite) {
-                    const assignedOrgId = pendingInvite.data().orgId;
-                    const assignedRole = pendingInvite.data().role || 'teacher';
+                    const data = pendingInvite.data();
                     
-                    // Create Profile
                     const newProfile = {
                       email: currentUser.email,
                       name: currentUser.displayName || '',
-                      role: assignedRole, 
-                      orgId: assignedOrgId, 
+                      role: data.role || 'teacher', 
+                      orgId: data.orgId, 
+                      schools: data.schools || [], // Array of school IDs, or 'all'
                       createdAt: new Date().toISOString()
                     };
                     await setDoc(userRef, newProfile);
                     setUserProfile(newProfile);
                     setUser(currentUser);
 
-                    // Mark invite as accepted
                     await updateDoc(doc(db, 'invites', pendingInvite.id), { status: 'accepted' });
                 } else {
-                    // HARD REJECT
                     console.warn("Unauthorized access attempt by:", currentUser.email);
                     await signOut(auth);
-                    setLoginError(`Access Denied: The email ${currentUser.email} has not been invited to a school district. Please contact your administrator.`);
+                    setLoginError(`Access Denied: The email ${currentUser.email} has not been invited. Please use an Invite Code.`);
                     setUser(null);
                     setUserProfile(null);
                 }
@@ -175,6 +196,7 @@ export default function App() {
       setLibrary([]);
       setStaff([]);
       setPendingInvites([]);
+      setSchools([]);
       setOrgDetails(null);
       setDataLoading(false);
       return;
@@ -183,11 +205,17 @@ export default function App() {
     setDataLoading(true);
     const orgId = userProfile.orgId;
 
-    // Listen to District / Organization License Data
+    // Listen to District Data
     const unsubOrg = onSnapshot(doc(db, 'organizations', orgId), (docSnap) => {
        if (docSnap.exists()) setOrgDetails(docSnap.data());
        else setOrgDetails(null);
-    }, (error) => console.error("Org listener error:", error));
+    });
+
+    // Listen to Schools Collection
+    const qSchools = query(collection(db, 'schools'), where('orgId', '==', orgId));
+    const unsubSchools = onSnapshot(qSchools, (snapshot) => {
+       setSchools(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
 
     // Listen to Students Collection
     const qStudents = query(collection(db, 'students'), where('orgId', '==', orgId));
@@ -195,44 +223,38 @@ export default function App() {
       const studentData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setStudents(studentData);
       
-      // Auto-update selected student if it changes
       setSelectedStudent(prev => {
-        if (!prev) return studentData.length > 0 ? studentData[0] : null;
+        if (!prev) return null;
         const updated = studentData.find(s => s.id === prev.id);
-        return updated || studentData[0] || null;
+        return updated || null;
       });
-    }, (error) => console.error("Students listener error:", error));
+    });
 
     // Listen to Library Collection
     const qLibrary = query(collection(db, 'library'), where('orgId', '==', orgId));
     const unsubLibrary = onSnapshot(qLibrary, (snapshot) => {
-      const libData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setLibrary(libData);
-    }, (error) => console.error("Library listener error:", error));
+      setLibrary(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
 
-    // Listen to Staff (Users in same Org)
+    // Listen to Staff
     const qStaff = query(collection(db, 'users'), where('orgId', '==', orgId));
     const unsubStaff = onSnapshot(qStaff, (snapshot) => {
-      const staffData = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() }));
-      setStaff(staffData);
-    }, (error) => console.error("Staff listener error:", error));
+      setStaff(snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() })));
+    });
 
-    // Listen to Pending Invites (Filter in memory to avoid Firebase compound index requirement)
+    // Listen to Pending Invites
     const qInvites = query(collection(db, 'invites'), where('orgId', '==', orgId));
     const unsubInvites = onSnapshot(qInvites, (snapshot) => {
       const inviteData = snapshot.docs
         .map(doc => ({ id: doc.id, ...doc.data() }))
         .filter(inv => inv.status === 'pending');
-        
       setPendingInvites(inviteData);
-      setDataLoading(false);
-    }, (error) => {
-      console.error("Invites listener error:", error);
       setDataLoading(false);
     });
 
     return () => {
       unsubOrg();
+      unsubSchools();
       unsubStudents();
       unsubLibrary();
       unsubStaff();
@@ -240,17 +262,15 @@ export default function App() {
     };
   }, [userProfile]);
 
-  // 3. Super Admin: Fetch all users and organizations across the entire system
+  // 3. Super Admin Live Feeds
   useEffect(() => {
     if (userProfile?.role === 'super_admin') {
       const unsubUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
         setSystemUsers(snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() })));
-      }, (error) => console.error("Users listener error:", error));
-      
+      });
       const unsubOrgs = onSnapshot(collection(db, 'organizations'), (snapshot) => {
         setOrganizations(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      }, (error) => console.error("Organizations listener error:", error));
-      
+      });
       return () => {
          unsubUsers();
          unsubOrgs();
@@ -258,19 +278,15 @@ export default function App() {
     }
   }, [userProfile]);
 
-  // 4. Camera Stream Lifecycle for Pairing Modal
+  // 4. Camera Stream
   useEffect(() => {
     if (showPairingModal) {
       navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
         .then(stream => {
           streamRef.current = stream;
-          if (videoRef.current) {
-            videoRef.current.srcObject = stream;
-          }
+          if (videoRef.current) videoRef.current.srcObject = stream;
         })
-        .catch(err => {
-          console.error("Camera access denied or unavailable", err);
-        });
+        .catch(err => console.error("Camera access denied", err));
     } else {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(t => t.stop());
@@ -278,87 +294,223 @@ export default function App() {
       }
     }
     return () => {
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(t => t.stop());
-      }
+      if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
     };
   }, [showPairingModal]);
 
 
+  // --- USER ACCESS FILTERING ---
+  // Teachers only see students in their assigned schools. Admins see all.
+  const visibleStudents = students.filter(s => {
+      if (!userProfile) return false;
+      if (userProfile.role === 'super_admin' || userProfile.role === 'district_admin') return true;
+      if (userProfile.schools === 'all') return true;
+      return userProfile.schools?.includes(s.schoolId);
+  });
+
+  // Calculate License Limits
+  const activeLicensesCount = students.filter(s => s.hasLicense !== false).length;
+  const maxLicenses = orgDetails?.licenses || 0;
+  const availableLicenses = Math.max(0, maxLicenses - activeLicensesCount);
+
+
   // --- ACTIONS ---
 
-  // Invite a New Teacher
+  // Auth: Email/Password Login
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setLoginError('');
+    setIsLoggingIn(true);
+    try {
+      await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
+    } catch (error) {
+      if (error.code === 'auth/invalid-credential') {
+         setLoginError("Invalid email or password.");
+      } else {
+         setLoginError(error.message.replace('Firebase: ', ''));
+      }
+      setIsLoggingIn(false);
+    }
+  };
+
+  // Auth: Register with Invite Code
+  const handleRegisterWithCode = async (e) => {
+    e.preventDefault();
+    setLoginError('');
+    setIsLoggingIn(true);
+    
+    try {
+        const cleanCode = regInviteCode.trim().toUpperCase();
+        
+        // 1. Find the invite by code
+        const qInvite = query(collection(db, 'invites'), where('code', '==', cleanCode));
+        const inviteDocs = await getDocs(qInvite);
+        
+        const pendingInviteDoc = inviteDocs.docs.find(doc => doc.data().status === 'pending');
+
+        if (!pendingInviteDoc) {
+            throw new Error("Invalid or expired invite code.");
+        }
+        
+        const inviteData = pendingInviteDoc.data();
+
+        // Extra security: Verify the email matches the invite
+        if (inviteData.email.toLowerCase() !== loginEmail.toLowerCase().trim()) {
+            throw new Error(`This code is registered to ${inviteData.email}. Please use that email address.`);
+        }
+
+        // 2. Create standard Firebase Auth User
+        const userCred = await createUserWithEmailAndPassword(auth, loginEmail, loginPassword);
+        
+        // 3. Create the Database Profile linking them to the district and schools
+        const newProfile = {
+            email: loginEmail.toLowerCase().trim(),
+            name: regName.trim(),
+            role: inviteData.role || 'teacher',
+            orgId: inviteData.orgId,
+            schools: inviteData.schools || [],
+            createdAt: new Date().toISOString()
+        };
+        await setDoc(doc(db, 'users', userCred.user.uid), newProfile);
+
+        // 4. Mark Invite as Accepted
+        await updateDoc(doc(db, 'invites', pendingInviteDoc.id), { status: 'accepted' });
+
+    } catch (error) {
+        console.error("Registration error:", error);
+        if (error.code === 'auth/email-already-in-use') {
+            setLoginError("An account already exists for this email. Try switching to 'Sign In'.");
+        } else {
+            setLoginError(error.message.replace('Firebase: ', ''));
+        }
+        await signOut(auth); // Cleanup if partially failed
+    } finally {
+        setIsLoggingIn(false);
+    }
+  };
+
+  // Auth: OAuth Login (Checks invites behind the scenes in onAuthStateChanged)
+  const handleOAuthLogin = async (providerName) => {
+    setLoginError('');
+    setIsLoggingIn(true);
+    const provider = providerName === 'google' ? new GoogleAuthProvider() : new OAuthProvider('microsoft.com');
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (error) {
+      setLoginError(error.message.replace('Firebase: ', ''));
+      setIsLoggingIn(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try { await signOut(auth); } catch (error) { console.error("Error signing out: ", error); }
+  };
+
+
+  // Schools: Create a new School in the District
+  const handleCreateSchool = async (e) => {
+      e.preventDefault();
+      if (!newSchoolName.trim() || !userProfile?.orgId) return;
+      try {
+          await addDoc(collection(db, 'schools'), {
+              name: newSchoolName.trim(),
+              orgId: userProfile.orgId,
+              createdAt: new Date().toISOString()
+          });
+          setNewSchoolName('');
+      } catch (e) {
+          console.error("Error creating school", e);
+          alert("Failed to create school.");
+      }
+  };
+
+  // Assign Existing Student to a different School
+  const handleUpdateStudentSchool = async (e) => {
+      e.preventDefault();
+      if (!editingStudentSchool || !editStudentSchoolId) return;
+      try {
+          await updateDoc(doc(db, 'students', editingStudentSchool.id), {
+              schoolId: editStudentSchoolId
+          });
+          if (selectedStudent?.id === editingStudentSchool.id) {
+              setSelectedStudent(prev => ({...prev, schoolId: editStudentSchoolId}));
+          }
+          setEditingStudentSchool(null);
+      } catch (err) {
+          console.error("Error updating student school", err);
+          alert("Failed to assign school.");
+      }
+  };
+
+  // Assign Existing Teacher to different Schools
+  const handleUpdateTeacherSchools = async (e) => {
+      e.preventDefault();
+      if (!editingTeacherSchools) return;
+      try {
+          await updateDoc(doc(db, 'users', editingTeacherSchools.uid), {
+              schools: editTeacherAllSchools ? 'all' : editTeacherSchoolList
+          });
+          setEditingTeacherSchools(null);
+      } catch (err) {
+          console.error("Error updating teacher schools", err);
+          alert("Failed to update teacher access.");
+      }
+  };
+
+
+  // Staff: Invite Teacher
   const handleInviteTeacher = async (e) => {
     e.preventDefault();
     if (!inviteEmail.trim() || !userProfile?.orgId) return;
 
+    if (!inviteAllSchools && inviteSchools.length === 0) {
+        return alert("Please select at least one school or check 'All Schools'.");
+    }
+
     try {
+        const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+
         await addDoc(collection(db, 'invites'), {
             email: inviteEmail.trim().toLowerCase(),
             orgId: userProfile.orgId,
             role: 'teacher',
             invitedBy: user.email,
+            code: code,
+            schools: inviteAllSchools ? 'all' : inviteSchools,
             createdAt: new Date().toISOString(),
             status: 'pending'
         });
         
         setShowInviteModal(false);
         setInviteEmail('');
-        alert(`Invitation registered for ${inviteEmail}! They will automatically join your district when they log in.`);
+        setInviteSchools([]);
+        setInviteAllSchools(true);
+        alert(`Invite created successfully!\n\nProvide the teacher with this code: ${code}`);
     } catch (err) {
         console.error("Error inviting teacher:", err);
         alert("Failed to send invitation. Check console for permissions.");
     }
   };
 
-  // Cancel an Invitation
   const handleCancelInvite = async (inviteId) => {
     if (window.confirm("Are you sure you want to cancel this invitation?")) {
-        try {
-            await deleteDoc(doc(db, 'invites', inviteId));
-        } catch (err) {
-            console.error("Error canceling invite:", err);
-            alert("Failed to cancel invite.");
-        }
+        try { await deleteDoc(doc(db, 'invites', inviteId)); } 
+        catch (err) { console.error("Error canceling invite:", err); }
     }
   };
 
-  // Calculated License Metrics
-  const activeLicensesCount = students.filter(s => s.hasLicense !== false).length; // defaults true for legacy
-  const maxLicenses = orgDetails?.licenses || 0;
-  const availableLicenses = Math.max(0, maxLicenses - activeLicensesCount);
-
-  // Toggle a Student's License Status
-  const handleToggleLicense = async (student) => {
-    const currentStatus = student.hasLicense !== false; 
-
-    // If trying to turn ON, verify there is space
-    if (!currentStatus && maxLicenses > 0 && activeLicensesCount >= maxLicenses) {
-        alert("You do not have enough available licenses in your district quota. Please revoke a license from another student or contact support to upgrade.");
-        return;
-    }
-
-    try {
-        await updateDoc(doc(db, 'students', student.id), {
-            hasLicense: !currentStatus
-        });
-    } catch (e) {
-        console.error("Failed to update license:", e);
-        alert("Failed to update license.");
-    }
-  };
-
-  // Create a new Student Profile
+  // Students: Create a new Student Profile
   const handleCreateStudent = async (e) => {
     e.preventDefault();
     if (!newStudentName.trim() || !userProfile?.orgId) return;
+    if (!newStudentSchoolId) return alert("Please assign this student to a school.");
 
-    // Check License Limits - allow creation, but flag as unlicensed if full
     const canAssignLicense = maxLicenses === 0 || activeLicensesCount < maxLicenses;
 
     try {
       await addDoc(collection(db, 'students'), {
         name: newStudentName.trim(),
+        schoolId: newStudentSchoolId,
         orgId: userProfile.orgId,
         device: 'Unlinked',
         status: 'offline',
@@ -368,9 +520,10 @@ export default function App() {
       });
       setShowNewStudentModal(false);
       setNewStudentName('');
+      setNewStudentSchoolId('');
 
       if (!canAssignLicense) {
-          alert(`Profile created! However, your district is out of available licenses, so this profile is currently Unlicensed. You can manage licenses in the Settings tab.`);
+          alert(`Profile created! However, your district is out of available licenses, so this profile is currently Unlicensed.`);
       }
     } catch (err) {
       console.error("Error creating student:", err);
@@ -378,73 +531,18 @@ export default function App() {
     }
   };
 
-  // Connect Device to Student Profile
-  const handleManualLinkDevice = async (e) => {
-    e.preventDefault();
-    if (!selectedStudent || !pairingCode) return;
-    
-    const code = pairingCode.trim().toUpperCase(); // Ensure uppercase matching
-    if (code.length !== 10) {
-      return alert("Please enter a valid 10-character alphanumeric sync code.");
+  const handleToggleLicense = async (student) => {
+    const currentStatus = student.hasLicense !== false; 
+    if (!currentStatus && maxLicenses > 0 && activeLicensesCount >= maxLicenses) {
+        alert("You do not have enough available licenses in your district quota."); return;
     }
-    
-    try {
-       // 1. Verify the code exists in the temporary database
-       const codeRef = doc(db, 'pairing_codes', code);
-       const codeSnap = await getDoc(codeRef);
-       const codeData = codeSnap.data();
-
-       if (!codeSnap.exists() || codeData?.status !== 'pending') {
-           return alert("Invalid or expired pairing code. Please generate a new one on the student's device.");
-       }
-
-       // Pull device info if provided by the client app
-       const detectedDevice = codeData.deviceName || "Linked Device";
-
-       // 2. Update the Dashboard UI to show it's linked
-       await updateDoc(doc(db, 'students', selectedStudent.id), {
-          device: detectedDevice,
-          status: 'online',
-          lastSync: 'Just now'
-       });
-
-       // 3. THE MAGIC HANDSHAKE: Tell the iPad which student profile it belongs to!
-       await updateDoc(codeRef, {
-           status: 'linked',
-           studentId: selectedStudent.id,
-           orgId: userProfile.orgId
-       });
-
-       setShowPairingModal(false);
-       setPairingCode('');
-       alert(`Successfully linked ${detectedDevice} to ${selectedStudent.name}!`);
-    } catch(err) {
-       console.error("Failed to link device", err);
-       alert("Error communicating with database.");
-    }
+    try { await updateDoc(doc(db, 'students', student.id), { hasLicense: !currentStatus }); } 
+    catch (e) { console.error("Failed to update license:", e); }
   };
 
-  // Unlink Device from Student
-  const handleUnlinkDevice = async () => {
-    if (!selectedStudent) return;
-    if (!window.confirm(`Are you sure you want to unlink the current device? The student will lose access until you pair a new one.`)) return;
-
-    try {
-      await updateDoc(doc(db, 'students', selectedStudent.id), {
-        device: 'Unlinked',
-        status: 'offline',
-        lastSync: 'Never'
-      });
-    } catch (error) {
-      console.error("Error unlinking device:", error);
-    }
-  };
-
-  // Delete Student Profile
   const handleDeleteStudent = async () => {
     if (!selectedStudent) return;
-    const confirmMessage = `WARNING: Are you sure you want to permanently delete the profile for "${selectedStudent.name}"? \n\nThis will instantly wipe all managed pages from their device, sever their connection, and free up 1 district license. This action CANNOT be undone.`;
-    
+    const confirmMessage = `WARNING: Are you sure you want to permanently delete "${selectedStudent.name}"? \n\nThis will wipe all managed pages from their device, sever their connection, and free up a license. This CANNOT be undone.`;
     if (!window.confirm(confirmMessage)) return;
 
     try {
@@ -454,6 +552,103 @@ export default function App() {
       console.error("Error deleting student:", error);
       alert("Failed to delete student profile.");
     }
+  };
+
+  // Devices: Link and Unlink
+  const handleManualLinkDevice = async (e) => {
+    e.preventDefault();
+    if (!selectedStudent || !pairingCode) return;
+    
+    const code = pairingCode.trim().toUpperCase();
+    if (code.length !== 10) return alert("Please enter a valid 10-character code.");
+    
+    try {
+       const codeRef = doc(db, 'pairing_codes', code);
+       const codeSnap = await getDoc(codeRef);
+       const codeData = codeSnap.data();
+
+       if (!codeSnap.exists() || codeData?.status !== 'pending') {
+           return alert("Invalid or expired pairing code.");
+       }
+
+       const detectedDevice = codeData.deviceName || "Linked Device";
+
+       await updateDoc(doc(db, 'students', selectedStudent.id), {
+          device: detectedDevice, status: 'online', lastSync: 'Just now'
+       });
+
+       await updateDoc(codeRef, {
+           status: 'linked', studentId: selectedStudent.id, orgId: userProfile.orgId
+       });
+
+       setShowPairingModal(false);
+       setPairingCode('');
+    } catch(err) {
+       console.error("Failed to link device", err);
+       alert("Error communicating with database.");
+    }
+  };
+
+  const handleUnlinkDevice = async () => {
+    if (!selectedStudent) return;
+    if (!window.confirm(`Are you sure you want to unlink the current device?`)) return;
+    try {
+      await updateDoc(doc(db, 'students', selectedStudent.id), {
+        device: 'Unlinked', status: 'offline', lastSync: 'Never'
+      });
+    } catch (error) { console.error("Error unlinking device:", error); }
+  };
+
+  // Library & Pages
+  const handlePushPageToStudent = async (e) => {
+    e.preventDefault();
+    if (!selectedStudent || !selectedLibraryPageId) return;
+    const pageToPush = library.find(p => p.id === selectedLibraryPageId);
+    if (!pageToPush) return;
+
+    try {
+      const newStudentPage = {
+         id: `managed_${pageToPush.id}_${Date.now()}`, 
+         label: pageToPush.label,
+         icon: pageToPush.icon,
+         color: pageToPush.color || "bg-slate-100",
+         tiles: pageToPush.tiles || [],
+         type: 'managed' 
+      };
+      const updatedPages = [...(selectedStudent.pages || []), newStudentPage];
+      await updateDoc(doc(db, 'students', selectedStudent.id), {
+        pages: updatedPages, lastSync: 'Just now (Update Pushed)'
+      });
+      setShowPushModal(false);
+      setSelectedLibraryPageId('');
+    } catch (error) {
+      console.error("Error pushing page:", error);
+      alert("Failed to push page to device.");
+    }
+  };
+
+  const handleRemoveStudentPage = async (pageIdToRemove) => {
+    if (!selectedStudent) return;
+    if (!window.confirm("Remove this page from the student's device?")) return;
+    try {
+      const updatedPages = (selectedStudent.pages || []).filter(p => p.id !== pageIdToRemove);
+      await updateDoc(doc(db, 'students', selectedStudent.id), {
+        pages: updatedPages, lastSync: 'Just now (Page Removed)'
+      });
+    } catch (error) { console.error("Error removing page:", error); }
+  };
+
+  const handleCreatePage = async (e) => {
+    e.preventDefault();
+    if (!newPageTitle.trim()) return;
+    try {
+      await addDoc(collection(db, 'library'), {
+        orgId: userProfile.orgId, label: newPageTitle, icon: newPageIcon || '📄',
+        color: 'bg-slate-100', tileCount: 0, tiles: [],
+        lastEdited: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      });
+      setShowNewPageModal(false); setNewPageTitle(''); setNewPageIcon('📄');
+    } catch(err) { console.error("Error creating page:", err); }
   };
 
   // Upload an exported Page JSON to the Library
@@ -496,86 +691,6 @@ export default function App() {
     };
   };
 
-  // Push a Master Page to a Student's Profile
-  const handlePushPageToStudent = async (e) => {
-    e.preventDefault();
-    if (!selectedStudent || !selectedLibraryPageId) return;
-
-    const pageToPush = library.find(p => p.id === selectedLibraryPageId);
-    if (!pageToPush) return;
-
-    try {
-      const studentRef = doc(db, 'students', selectedStudent.id);
-      
-      // Construct the new page payload for the student
-      const newStudentPage = {
-         id: `managed_${pageToPush.id}_${Date.now()}`, // Unique ID for their local array
-         label: pageToPush.label,
-         icon: pageToPush.icon,
-         color: pageToPush.color || "bg-slate-100",
-         tiles: pageToPush.tiles || [],
-         type: 'managed' // Tags it as read-only on their device
-      };
-
-      const updatedPages = [...(selectedStudent.pages || []), newStudentPage];
-
-      await updateDoc(studentRef, {
-        pages: updatedPages,
-        lastSync: 'Just now (Update Pushed)'
-      });
-
-      setShowPushModal(false);
-      setSelectedLibraryPageId('');
-      alert(`Successfully pushed "${pageToPush.label}" to ${selectedStudent.name}!`);
-    } catch (error) {
-      console.error("Error pushing page:", error);
-      alert("Failed to push page to device.");
-    }
-  };
-
-  // Remove a managed page from a student's profile
-  const handleRemoveStudentPage = async (pageIdToRemove) => {
-    if (!selectedStudent) return;
-    if (!window.confirm("Are you sure you want to remove this page from the student's device? It will be deleted on their next sync.")) return;
-
-    try {
-      const studentRef = doc(db, 'students', selectedStudent.id);
-      const updatedPages = (selectedStudent.pages || []).filter(p => p.id !== pageIdToRemove);
-      
-      await updateDoc(studentRef, {
-        pages: updatedPages,
-        lastSync: 'Just now (Page Removed)'
-      });
-    } catch (error) {
-      console.error("Error removing page:", error);
-      alert("Failed to remove page.");
-    }
-  };
-
-  // Create a new (Blank) Master Page in the Library
-  const handleCreatePage = async (e) => {
-    e.preventDefault();
-    if (!newPageTitle.trim()) return;
-    
-    try {
-      await addDoc(collection(db, 'library'), {
-        orgId: userProfile.orgId,
-        label: newPageTitle,
-        icon: newPageIcon || '📄',
-        color: 'bg-slate-100',
-        tileCount: 0,
-        tiles: [],
-        lastEdited: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-      });
-      setShowNewPageModal(false);
-      setNewPageTitle('');
-      setNewPageIcon('📄');
-    } catch(err) {
-      console.error("Error creating page:", err);
-      alert("Failed to create master page.");
-    }
-  };
-
   // Update existing Library Page Metadata
   const handleUpdateLibraryPage = async (e) => {
     e.preventDefault();
@@ -606,21 +721,8 @@ export default function App() {
     }
   };
 
-  // Super Admin: Update User
-  const handleUpdateSystemUser = async (uid, newRole, newOrgId) => {
-    try {
-      await updateDoc(doc(db, 'users', uid), {
-        role: newRole,
-        orgId: newOrgId.trim()
-      });
-      alert('User updated successfully!');
-    } catch (error) {
-      console.error("Error updating user:", error);
-      alert('Failed to update user. Check console for details.');
-    }
-  };
-
-  // Super Admin: Create New District
+  // --- SUPER ADMIN SPECIFIC ACTIONS ---
+  
   const handleCreateOrganization = async (name, licensesStr) => {
     if (!name || !name.trim()) return alert("Organization name cannot be empty.");
     const cleanName = name.trim();
@@ -633,9 +735,7 @@ export default function App() {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       });
-      
       alert(`Successfully created district: ${cleanName}`);
-      
       const newNameInput = document.getElementById('new-org-name');
       const newLicInput = document.getElementById('new-org-lic');
       if (newNameInput) newNameInput.value = '';
@@ -646,79 +746,48 @@ export default function App() {
     }
   };
 
-  // Super Admin: Update Existing District Licenses
   const handleUpdateOrgLicense = async (orgId, licensesStr) => {
     const licenses = parseInt(licensesStr) || 0;
-    
     try {
       await updateDoc(doc(db, 'organizations', orgId), { 
         licenses: licenses,
         updatedAt: new Date().toISOString()
       });
-      
       alert(`Successfully updated licenses!`);
-    } catch (error) {
-      console.error("Error updating licenses:", error);
-      alert('Failed to update licenses. Check console for details.');
-    }
+    } catch (error) { console.error("Error updating licenses:", error); }
   };
 
-  // --- AUTH ACTIONS ---
-  const handleAuthError = (error) => {
-    console.error(error);
-    if (error.code === 'auth/unauthorized-domain') {
-      const currentDomain = window.location.hostname;
-      setLoginError(`Domain Blocked! Add "${currentDomain}" to your Firebase Console under Authentication -> Settings -> Authorized Domains.`);
-    } else {
-      setLoginError(error.message.replace('Firebase: ', ''));
-    }
-  };
-
-  const handleGoogleLogin = async () => {
-    setLoginError('');
-    setIsLoggingIn(true);
-    const provider = new GoogleAuthProvider();
+  const handleUpdateSystemUser = async (uid, newRole, newOrgId) => {
     try {
-      await signInWithPopup(auth, provider);
-    } catch (error) {
-      handleAuthError(error);
-      setIsLoggingIn(false);
-    }
+      await updateDoc(doc(db, 'users', uid), { role: newRole, orgId: newOrgId.trim() });
+      alert('User updated successfully!');
+    } catch (error) { console.error("Error updating user:", error); }
   };
 
-  const handleMicrosoftLogin = async () => {
-    setLoginError('');
-    setIsLoggingIn(true);
-    const provider = new OAuthProvider('microsoft.com');
-    try {
-      await signInWithPopup(auth, provider);
-    } catch (error) {
-      handleAuthError(error);
-      setIsLoggingIn(false);
-    }
-  };
-
-  const handleLogin = async (e) => {
+  const handleSuperAdminInvite = async (e) => {
     e.preventDefault();
-    setLoginError('');
-    setIsLoggingIn(true);
-    try {
-      await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
-    } catch (error) {
-      if (error.code === 'auth/invalid-credential') {
-         setLoginError("Invalid email or password.");
-      } else {
-         handleAuthError(error);
-      }
-      setIsLoggingIn(false);
-    }
-  };
+    if (!saInviteEmail.trim() || !saInviteOrgId) return;
 
-  const handleLogout = async () => {
     try {
-      await signOut(auth);
-    } catch (error) {
-      console.error("Error signing out: ", error);
+        const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+
+        await addDoc(collection(db, 'invites'), {
+            email: saInviteEmail.trim().toLowerCase(),
+            orgId: saInviteOrgId,
+            role: 'district_admin',
+            invitedBy: user.email,
+            code: code,
+            schools: 'all', // District Admins automatically have access to all schools
+            createdAt: new Date().toISOString(),
+            status: 'pending'
+        });
+        
+        setSaInviteEmail('');
+        setSaInviteOrgId('');
+        alert(`District Admin Invite created successfully!\n\nEmail: ${saInviteEmail}\nCode: ${code}\n\nProvide the admin with this code so they can register.`);
+    } catch (err) {
+        console.error("Error creating district admin invite:", err);
+        alert("Failed to create invite.");
     }
   };
 
@@ -732,78 +801,80 @@ export default function App() {
     );
   }
 
-  // --- UI: Login Screen ---
+  // --- UI: Login / Register Screen ---
   if (!user) {
     return (
-      <div className="h-screen bg-slate-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-3xl shadow-xl w-full max-w-md p-8 border border-slate-100">
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+        <div className="bg-white rounded-3xl shadow-xl w-full max-w-md p-8 border border-slate-100 transition-all">
           <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center font-bold text-3xl text-white shadow-inner mx-auto mb-6">Z</div>
           <h1 className="text-2xl font-bold text-center text-slate-800 mb-2">Teacher Dashboard</h1>
-          <p className="text-center text-slate-500 text-sm mb-8">Sign in with your district credentials</p>
+          <p className="text-center text-slate-500 text-sm mb-8">
+             {isRegistering ? 'Join your district using an invite code' : 'Sign in to manage your caseload'}
+          </p>
           
           {loginError && (
-            <div className="bg-red-50 text-red-600 p-3 rounded-xl text-sm font-medium flex items-start gap-2 mb-4 break-words">
+            <div className="bg-red-50 text-red-600 p-3 rounded-xl text-sm font-medium flex items-start gap-2 mb-4 break-words border border-red-200 shadow-sm">
               <AlertCircle size={16} className="shrink-0 mt-0.5" /> 
               <span>{loginError}</span>
             </div>
           )}
 
-          <div className="space-y-3 mb-6">
-            <button 
-              onClick={handleGoogleLogin}
-              disabled={isLoggingIn}
-              className="w-full py-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold rounded-xl shadow-sm transition-all flex items-center justify-center gap-3 disabled:opacity-50"
-            >
-              <svg className="w-5 h-5" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-              Sign in with Google
-            </button>
-            <button 
-              onClick={handleMicrosoftLogin}
-              disabled={isLoggingIn}
-              className="w-full py-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold rounded-xl shadow-sm transition-all flex items-center justify-center gap-3 disabled:opacity-50"
-            >
-              <svg className="w-5 h-5" viewBox="0 0 21 21"><path fill="#f35325" d="M1 1h9v9H1z"/><path fill="#81bc06" d="M11 1h9v9h-9z"/><path fill="#05a6f0" d="M1 11h9v9H1z"/><path fill="#ffba08" d="M11 11h9v9h-9z"/></svg>
-              Sign in with Microsoft
-            </button>
-          </div>
-
-          <div className="relative flex items-center py-2 mb-6">
-            <div className="flex-grow border-t border-slate-200"></div>
-            <span className="flex-shrink-0 mx-4 text-slate-400 text-xs font-bold uppercase tracking-wider">Or email</span>
-            <div className="flex-grow border-t border-slate-200"></div>
-          </div>
+          {!isRegistering && (
+             <div className="space-y-3 mb-6">
+                <button onClick={() => handleOAuthLogin('google')} disabled={isLoggingIn} className="w-full py-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold rounded-xl shadow-sm transition-all flex items-center justify-center gap-3 disabled:opacity-50">
+                  <svg className="w-5 h-5" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+                  Sign in with Google
+                </button>
+                <button onClick={() => handleOAuthLogin('microsoft')} disabled={isLoggingIn} className="w-full py-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold rounded-xl shadow-sm transition-all flex items-center justify-center gap-3 disabled:opacity-50">
+                  <svg className="w-5 h-5" viewBox="0 0 21 21"><path fill="#f35325" d="M1 1h9v9H1z"/><path fill="#81bc06" d="M11 1h9v9h-9z"/><path fill="#05a6f0" d="M1 11h9v9H1z"/><path fill="#ffba08" d="M11 11h9v9h-9z"/></svg>
+                  Sign in with Microsoft
+                </button>
+                <div className="relative flex items-center py-2">
+                  <div className="flex-grow border-t border-slate-200"></div>
+                  <span className="flex-shrink-0 mx-4 text-slate-400 text-xs font-bold uppercase tracking-wider">Or email</span>
+                  <div className="flex-grow border-t border-slate-200"></div>
+                </div>
+             </div>
+          )}
           
-          <form onSubmit={handleLogin} className="space-y-5">
+          <form onSubmit={isRegistering ? handleRegisterWithCode : handleLogin} className="space-y-4">
+            
+            {isRegistering && (
+               <>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-1">Full Name</label>
+                    <input type="text" required value={regName} onChange={e => setRegName(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="Jane Doe"/>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-1 flex items-center gap-1"><Key size={14} className="text-blue-500"/> District Invite Code</label>
+                    <input type="text" required value={regInviteCode} onChange={e => setRegInviteCode(e.target.value)} className="w-full p-3 bg-blue-50 border border-blue-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-mono tracking-widest text-lg uppercase" placeholder="6-CHAR" maxLength={6}/>
+                  </div>
+               </>
+            )}
+
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-1">Email Address</label>
-              <input 
-                type="email" 
-                required
-                value={loginEmail}
-                onChange={e => setLoginEmail(e.target.value)}
-                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all" 
-                placeholder="teacher@school.edu"
-              />
+              <input type="email" required value={loginEmail} onChange={e => setLoginEmail(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="teacher@school.edu"/>
             </div>
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-1">Password</label>
-              <input 
-                type="password" 
-                required
-                value={loginPassword}
-                onChange={e => setLoginPassword(e.target.value)}
-                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all" 
-                placeholder="••••••••"
-              />
+              <input type="password" required value={loginPassword} onChange={e => setLoginPassword(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="••••••••"/>
             </div>
-            <button 
-              type="submit" 
-              disabled={isLoggingIn}
-              className="w-full py-3.5 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl shadow-md transition-all disabled:opacity-70 flex justify-center items-center gap-2 mt-2"
-            >
-              {isLoggingIn ? <Loader2 className="animate-spin" size={20} /> : 'Sign In'}
+
+            <button type="submit" disabled={isLoggingIn} className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl shadow-md transition-all disabled:opacity-70 flex justify-center items-center gap-2 mt-2">
+              {isLoggingIn ? <Loader2 className="animate-spin" size={20} /> : (isRegistering ? 'Join District' : 'Sign In')}
             </button>
           </form>
+
+          <div className="mt-8 pt-4 border-t border-slate-100 text-center">
+              <button 
+                 type="button" 
+                 onClick={() => { setIsRegistering(!isRegistering); setLoginError(''); }} 
+                 className="text-sm font-bold text-blue-600 hover:underline"
+              >
+                  {isRegistering ? 'Already have an account? Sign In' : 'Have an Invite Code? Sign Up'}
+              </button>
+          </div>
         </div>
       </div>
     );
@@ -817,8 +888,8 @@ export default function App() {
   };
 
   const uniqueOrgIds = Array.from(new Set([
-    ...organizations.map(org => org.id),
-    ...systemUsers.map(u => u.orgId).filter(id => id && id !== 'pending')
+    ...(organizations?.map(org => org.id) || []),
+    ...(systemUsers?.map(u => u.orgId).filter(id => id && id !== 'pending') || [])
   ])).sort();
 
   // --- UI: The Main Dashboard (Protected) ---
@@ -830,17 +901,12 @@ export default function App() {
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center font-bold text-xl shadow-inner">Z</div>
           <span className="font-bold text-lg tracking-wide">EasySpeak <span className="text-blue-400 font-normal">for Education</span></span>
-          <span className={`ml-4 px-2.5 py-0.5 border rounded-full text-xs font-medium ${userProfile?.orgId === 'pending' ? 'bg-amber-900/50 border-amber-700 text-amber-400' : 'bg-slate-800 border-slate-700 text-slate-300'}`}>
-            {userProfile?.orgId === 'pending' ? 'Pending District Approval' : (orgDetails?.name || userProfile?.orgId)}
+          <span className={`ml-4 px-2.5 py-0.5 border rounded-full text-xs font-medium bg-slate-800 border-slate-700 text-slate-300`}>
+             {orgDetails?.name || userProfile?.orgId}
           </span>
         </div>
         
         <div className="flex items-center gap-4">
-          <button className="relative p-2 text-slate-400 hover:text-white transition-colors">
-            <Bell size={20} />
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
-          </button>
-          <div className="h-8 w-px bg-slate-700 mx-2"></div>
           <div className="flex items-center gap-3 p-1.5">
             <div className="text-right hidden md:block">
               <div className="text-sm font-bold leading-tight">{userProfile?.name || user.email}</div>
@@ -862,13 +928,13 @@ export default function App() {
               onClick={() => setActiveTab('students')}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${activeTab === 'students' ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50'}`}
             >
-              <Users size={20} /> My Students
+              <Users size={20} /> Caseload
             </button>
             <button 
               onClick={() => setActiveTab('library')}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${activeTab === 'library' ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50'}`}
             >
-              <BookOpen size={20} /> District Library
+              <BookOpen size={20} /> Library
             </button>
             <button 
               onClick={() => setActiveTab('settings')}
@@ -898,7 +964,7 @@ export default function App() {
         {/* Main Content Area */}
         <main className="flex-1 flex overflow-hidden relative">
           
-          {dataLoading && userProfile?.orgId !== 'pending' && activeTab !== 'system_admin' && (
+          {dataLoading && activeTab !== 'system_admin' && (
              <div className="absolute inset-0 bg-white/50 backdrop-blur-sm z-10 flex items-center justify-center">
                  <Loader2 className="animate-spin text-blue-600" size={32} />
              </div>
@@ -911,11 +977,10 @@ export default function App() {
               <div className="w-80 bg-slate-50 border-r border-slate-200 flex flex-col shrink-0">
                 <div className="p-4 border-b border-slate-200 bg-white">
                   <div className="flex items-center justify-between mb-4">
-                    <h2 className="font-bold text-slate-800">Caseload ({students.length})</h2>
+                    <h2 className="font-bold text-slate-800">Caseload ({visibleStudents?.length || 0})</h2>
                     <button 
                        onClick={() => setShowNewStudentModal(true)} 
-                       disabled={userProfile?.orgId === 'pending'} 
-                       className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm transition-colors disabled:opacity-50" 
+                       className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm transition-colors" 
                        title="Add New Student"
                     >
                       <UserPlus size={18} />
@@ -928,34 +993,36 @@ export default function App() {
                 </div>
                 
                 <div className="flex-1 overflow-y-auto p-2 space-y-1">
-                  {students.length === 0 ? (
+                  {(!visibleStudents || visibleStudents.length === 0) ? (
                       <div className="text-center p-6 text-slate-400 mt-8 border-2 border-dashed border-slate-300 rounded-2xl mx-2">
                           <Users size={32} className="mx-auto mb-2 opacity-50" />
                           <p className="text-sm font-bold text-slate-600">Your caseload is empty.</p>
                           <button onClick={() => setShowNewStudentModal(true)} className="mt-3 text-xs bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg font-bold">Add Student</button>
                       </div>
                   ) : (
-                    students.map(student => (
-                      <button 
-                        key={student.id}
-                        onClick={() => setSelectedStudent(student)}
-                        className={`w-full text-left p-3 rounded-xl transition-all border ${selectedStudent?.id === student.id ? 'bg-white border-blue-200 shadow-sm ring-1 ring-blue-500' : 'bg-transparent border-transparent hover:bg-white hover:border-slate-200'}`}
-                      >
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="font-bold text-slate-800">{student.name}</span>
-                          {student.hasLicense === false ? (
-                            <span className="text-[10px] font-bold text-red-500 uppercase tracking-wider bg-red-50 px-2 py-0.5 rounded">Unlicensed</span>
-                          ) : student.status === 'online' ? (
-                            <span className="flex items-center gap-1 text-[10px] font-bold text-green-600 uppercase tracking-wider"><Wifi size={12} /> Syncing</span>
-                          ) : (
-                            <span className="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider"><WifiOff size={12} /> Offline</span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                          <Smartphone size={14} className={student.hasLicense === false ? 'text-red-400' : ''}/> {student.hasLicense === false ? 'Action Required' : student.device}
-                        </div>
-                      </button>
-                    ))
+                    visibleStudents.map(student => {
+                      const schoolName = schools?.find(s => s.id === student.schoolId)?.name || 'Unassigned';
+                      return (
+                        <button 
+                          key={student.id}
+                          onClick={() => setSelectedStudent(student)}
+                          className={`w-full text-left p-3 rounded-xl transition-all border ${selectedStudent?.id === student.id ? 'bg-white border-blue-200 shadow-sm ring-1 ring-blue-500' : 'bg-transparent border-transparent hover:bg-white hover:border-slate-200'}`}
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="font-bold text-slate-800">{student.name}</span>
+                            {student.status === 'online' ? (
+                              <span className="flex items-center gap-1 text-[10px] font-bold text-green-600 uppercase tracking-wider"><Wifi size={12} /> Syncing</span>
+                            ) : (
+                              <span className="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider"><WifiOff size={12} /> Offline</span>
+                            )}
+                          </div>
+                          <div className="flex items-center justify-between text-xs text-slate-500">
+                            <span className="flex items-center gap-1"><Smartphone size={12}/> {student.device}</span>
+                            <span className="flex items-center gap-1 px-1.5 py-0.5 bg-slate-100 rounded text-[10px] truncate max-w-[100px]"><Building size={10}/> {schoolName}</span>
+                          </div>
+                        </button>
+                      );
+                    })
                   )}
                 </div>
               </div>
@@ -978,7 +1045,29 @@ export default function App() {
                     {/* Header */}
                     <div className="flex items-start justify-between mb-8">
                       <div>
-                        <h1 className="text-3xl font-bold text-slate-900 mb-2">{selectedStudent.name}'s Profile</h1>
+                        <div className="flex items-center gap-3 mb-2">
+                           <h1 className="text-3xl font-bold text-slate-900">{selectedStudent.name}'s Profile</h1>
+                           
+                           {/* EDIT STUDENT SCHOOL BADGE */}
+                           {(userProfile?.role === 'district_admin' || userProfile?.role === 'super_admin') ? (
+                               <button 
+                                   onClick={() => {
+                                       setEditStudentSchoolId(selectedStudent.schoolId || '');
+                                       setEditingStudentSchool(selectedStudent);
+                                   }}
+                                   className="bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-700 px-3 py-1 rounded-full text-sm font-bold flex items-center gap-1.5 border border-slate-200 transition-colors"
+                                   title="Change School Assignment"
+                               >
+                                   <Building size={16}/> 
+                                   {schools?.find(s => s.id === selectedStudent.schoolId)?.name || 'Assign School'}
+                                   <Edit2 size={14} className="ml-1 opacity-50"/>
+                               </button>
+                           ) : (
+                               <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-full text-sm font-bold flex items-center gap-1.5 border border-slate-200">
+                                   <Building size={16}/> {schools?.find(s => s.id === selectedStudent.schoolId)?.name || 'Unassigned School'}
+                               </span>
+                           )}
+                        </div>
                         <div className="flex items-center gap-4 text-sm text-slate-500">
                           <span className="flex items-center gap-1.5 bg-slate-100 px-3 py-1 rounded-full">
                              <Smartphone size={16} className={selectedStudent.device === 'Unlinked' ? 'text-amber-500' : 'text-slate-600'} /> 
@@ -1012,7 +1101,7 @@ export default function App() {
                             <p className="text-sm text-slate-500 mb-4">These pages are pushed to {selectedStudent.name}'s device. The student cannot delete or edit these.</p>
                             
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                              {(selectedStudent.pages || []).filter(p => p.type === 'managed').map(page => (
+                              {(selectedStudent.pages || [])?.filter(p => p.type === 'managed').map(page => (
                                 <div key={page.id} className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col items-center justify-center text-center shadow-sm group">
                                   <span className="text-3xl mb-2">{page.icon}</span>
                                   <span className="font-bold text-sm text-slate-800 truncate w-full">{page.label}</span>
@@ -1021,10 +1110,10 @@ export default function App() {
                                   </div>
                                 </div>
                               ))}
-                              {(selectedStudent.pages || []).filter(p => p.type === 'managed').length === 0 && (
+                              {(!selectedStudent.pages || selectedStudent.pages.filter(p => p.type === 'managed').length === 0) && (
                                 <div className="col-span-full py-8 text-center text-slate-400 border-2 border-dashed border-slate-300 rounded-xl">
                                   No school pages pushed yet.
-                                </div>
+                                 </div>
                               )}
                             </div>
                           </div>
@@ -1040,13 +1129,13 @@ export default function App() {
                             <p className="text-sm text-slate-500 mb-4 flex items-center gap-2"><Lock size={14}/> Created by the user/family. You can view these for context, but cannot edit them.</p>
                             
                             <div className="flex gap-3 overflow-x-auto pb-2">
-                              {(selectedStudent.pages || []).filter(p => p.type !== 'managed').map(page => (
+                              {(selectedStudent.pages || [])?.filter(p => p.type !== 'managed').map(page => (
                                 <div key={page.id} className="shrink-0 w-28 bg-slate-50 border border-slate-100 rounded-xl p-3 flex flex-col items-center justify-center text-center opacity-80 cursor-not-allowed">
                                   <span className="text-2xl mb-1 grayscale">{page.icon}</span>
                                   <span className="font-medium text-xs text-slate-600 truncate w-full">{page.label}</span>
                                 </div>
                               ))}
-                              {(selectedStudent.pages || []).filter(p => p.type !== 'managed').length === 0 && (
+                              {(!selectedStudent.pages || selectedStudent.pages.filter(p => p.type !== 'managed').length === 0) && (
                                  <div className="text-sm text-slate-400 italic">No personal pages created yet.</div>
                               )}
                             </div>
@@ -1087,13 +1176,14 @@ export default function App() {
                             )}
                             <p className="text-[10px] text-slate-400 text-center leading-tight mb-6">If a device is lost or wiped, Unlink it here first to free up the slot for a new device.</p>
                             
-                            {/* NEW: Permanent Delete Button */}
-                            <button 
-                               onClick={handleDeleteStudent} 
-                               className="w-full py-2.5 bg-red-50 hover:bg-red-100 text-red-700 font-bold rounded-xl text-sm transition-colors border border-red-200 flex items-center justify-center gap-2"
-                            >
-                               <Trash2 size={16} /> Delete Profile
-                            </button>
+                            {(userProfile?.role === 'super_admin' || userProfile?.role === 'district_admin') && (
+                                <button 
+                                   onClick={handleDeleteStudent} 
+                                   className="w-full py-2.5 bg-red-50 hover:bg-red-100 text-red-700 font-bold rounded-xl text-sm transition-colors border border-red-200 flex items-center justify-center gap-2"
+                                >
+                                   <Trash2 size={16} /> Delete Profile
+                                </button>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -1104,7 +1194,7 @@ export default function App() {
                   <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 bg-slate-50/50">
                     <Users size={64} className="mb-4 text-slate-300"/>
                     <p className="text-lg font-bold text-slate-500">
-                       {userProfile?.orgId === 'pending' && userProfile?.role !== 'super_admin' ? 'Waiting for district approval...' : 'Select a student from the sidebar'}
+                       Select a student from the sidebar
                     </p>
                   </div>
                 )}
@@ -1112,7 +1202,7 @@ export default function App() {
             </>
           )}
 
-          {/* Library Tab Prototype */}
+          {/* Library Tab */}
           {activeTab === 'library' && (
             <div className="flex-1 bg-white p-8 overflow-y-auto">
               <div className="max-w-5xl mx-auto">
@@ -1124,25 +1214,16 @@ export default function App() {
                   
                   {/* Action Buttons */}
                   <div className="flex gap-2 w-full md:w-auto">
-                    {/* Hidden File Input for JSON Upload */}
-                    <input 
-                       type="file" 
-                       ref={libraryUploadRef} 
-                       onChange={handleLibraryUpload} 
-                       accept=".json" 
-                       className="hidden" 
-                    />
+                    <input type="file" ref={libraryUploadRef} onChange={handleLibraryUpload} accept=".json" className="hidden" />
                     <button 
                       onClick={() => libraryUploadRef.current?.click()}
-                      disabled={userProfile?.orgId === 'pending'}
-                      className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 font-bold rounded-lg hover:bg-slate-200 shadow-sm transition-colors disabled:opacity-50"
+                      className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 font-bold rounded-lg hover:bg-slate-200 shadow-sm transition-colors"
                     >
                       <Upload size={18} /> Upload JSON
                     </button>
                     <button 
                       onClick={() => setShowNewPageModal(true)}
-                      disabled={userProfile?.orgId === 'pending'} 
-                      className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
+                      className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 shadow-sm transition-colors"
                     >
                       <Plus size={18} /> New Blank Page
                     </button>
@@ -1150,7 +1231,7 @@ export default function App() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {library.length === 0 ? (
+                  {(!library || library.length === 0) ? (
                       <div className="col-span-full text-center py-12 text-slate-400 border-2 border-dashed border-slate-200 rounded-3xl">
                           <BookOpen size={48} className="mx-auto mb-4 opacity-50" />
                           <h3 className="text-lg font-bold text-slate-600 mb-1">Your library is empty</h3>
@@ -1161,7 +1242,7 @@ export default function App() {
                           </div>
                       </div>
                   ) : (
-                    library.map(lib => (
+                    library?.map(lib => (
                       <div key={lib.id} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow cursor-pointer group">
                         <div className="flex items-start justify-between mb-4">
                           <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center text-2xl">
@@ -1187,7 +1268,7 @@ export default function App() {
             </div>
           )}
 
-          {/* Settings Tab Prototype */}
+          {/* Settings Tab */}
           {activeTab === 'settings' && (
             <div className="flex-1 bg-slate-50 p-8 overflow-y-auto flex flex-col items-center">
                 <div className="w-full max-w-4xl">
@@ -1215,8 +1296,47 @@ export default function App() {
                        </div>
                     </div>
 
-                    {/* District Licensing Display */}
-                    {(userProfile?.role === 'district_admin' || userProfile?.role === 'super_admin') && userProfile?.orgId !== 'pending' && (
+                    {/* Manage Schools (Admin Only) */}
+                    {(userProfile?.role === 'district_admin' || userProfile?.role === 'super_admin') && (
+                       <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-8">
+                          <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-6 border-b border-slate-100 pb-4">
+                             <div>
+                               <h3 className="text-lg font-bold text-slate-800">Manage Schools</h3>
+                               <p className="text-sm text-slate-500">Create schools to organize students and control teacher access.</p>
+                             </div>
+                             
+                             {/* Create School Form */}
+                             <form onSubmit={handleCreateSchool} className="flex gap-2">
+                                <input 
+                                   type="text" 
+                                   value={newSchoolName}
+                                   onChange={e => setNewSchoolName(e.target.value)}
+                                   placeholder="New School Name..."
+                                   className="p-2 border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-500 min-w-[200px]"
+                                />
+                                <button type="submit" className="px-4 py-2 bg-slate-800 text-white font-bold text-sm rounded-lg hover:bg-slate-700 transition-colors">Add</button>
+                             </form>
+                          </div>
+
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                              {schools?.map(school => (
+                                  <div key={school.id} className="p-3 border border-slate-200 rounded-xl bg-slate-50 flex items-center gap-3">
+                                      <Building size={18} className="text-slate-400 shrink-0"/>
+                                      <div className="font-bold text-slate-700 text-sm truncate">{school.name}</div>
+                                  </div>
+                              ))}
+                              {(!schools || schools.length === 0) && (
+                                  <div className="col-span-full p-4 text-center text-sm text-slate-400 border border-dashed border-slate-300 rounded-xl">
+                                      No schools created yet. Add one above.
+                                  </div>
+                              )}
+                          </div>
+                       </div>
+                    )}
+
+
+                    {/* District Licensing Display (Admin Only) */}
+                    {(userProfile?.role === 'district_admin' || userProfile?.role === 'super_admin') && (
                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-8">
                           <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
                              <div>
@@ -1239,21 +1359,22 @@ export default function App() {
                              </div>
                           </div>
 
-                          {/* License Assignment Table */}
                           <div className="border border-slate-200 rounded-xl overflow-hidden">
                             <table className="w-full text-left border-collapse">
                                <thead className="bg-slate-50 border-b border-slate-200 text-xs uppercase tracking-wider text-slate-500">
                                   <tr>
                                      <th className="p-4 font-bold">Student Profile</th>
-                                     <th className="p-4 font-bold">Device Status</th>
+                                     <th className="p-4 font-bold">School</th>
                                      <th className="p-4 font-bold text-right">License Assigned</th>
                                   </tr>
                                </thead>
                                <tbody className="divide-y divide-slate-100">
-                                  {students.map(s => (
+                                  {students?.map(s => {
+                                     const sName = schools?.find(sch => sch.id === s.schoolId)?.name || 'Unassigned';
+                                     return (
                                      <tr key={s.id} className="hover:bg-slate-50 transition-colors">
                                         <td className="p-4 font-bold text-slate-800">{s.name}</td>
-                                        <td className="p-4 text-sm text-slate-600">{s.device}</td>
+                                        <td className="p-4 text-sm text-slate-600">{sName}</td>
                                         <td className="p-4 text-right">
                                            <button 
                                               onClick={() => handleToggleLicense(s)}
@@ -1267,24 +1388,23 @@ export default function App() {
                                            </button>
                                         </td>
                                      </tr>
-                                  ))}
-                                  {students.length === 0 && (
-                                     <tr><td colSpan="3" className="p-6 text-center text-slate-400">No students in your caseload yet.</td></tr>
+                                  )})}
+                                  {(!students || students.length === 0) && (
+                                     <tr><td colSpan="3" className="p-6 text-center text-slate-400">No students in district yet.</td></tr>
                                   )}
                                </tbody>
                             </table>
                           </div>
-
                        </div>
                     )}
 
                     {/* District Staff Roster (Admin Only) */}
-                    {(userProfile?.role === 'district_admin' || userProfile?.role === 'super_admin') && userProfile?.orgId !== 'pending' && (
+                    {(userProfile?.role === 'district_admin' || userProfile?.role === 'super_admin') && (
                       <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-8">
                          <div className="flex justify-between items-center mb-6">
                             <div>
                                <h3 className="text-lg font-bold text-slate-800">District Staff Roster</h3>
-                               <p className="text-sm text-slate-500">Teachers linked to {orgDetails?.name || userProfile?.orgId}</p>
+                               <p className="text-sm text-slate-500">Manage teachers and their school assignments.</p>
                             </div>
                             <button 
                                onClick={() => setShowInviteModal(true)} 
@@ -1294,16 +1414,39 @@ export default function App() {
                             </button>
                          </div>
                          
-                         <div className="border border-slate-200 rounded-xl overflow-hidden">
-                            {staff.map(s => (
+                         <div className="border border-slate-200 rounded-xl overflow-hidden mb-4">
+                            {staff?.map(s => (
                                <div key={s.uid} className="p-4 border-b last:border-b-0 border-slate-100 flex justify-between items-center hover:bg-slate-50 transition-colors">
                                   <div className="flex items-center gap-3">
                                      <div className="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center font-bold text-slate-500 uppercase">
                                         {(s.name || s.email || 'U').charAt(0)}
                                      </div>
                                      <div>
-                                        <div className="font-bold text-slate-800">{s.email} {s.uid === user.uid && <span className="text-xs font-normal text-blue-500 ml-1">(You)</span>}</div>
-                                        <div className="text-xs text-slate-500">{getRoleDisplayName(s.role)}</div>
+                                        <div className="font-bold text-slate-800 flex items-center gap-2">
+                                            {s.email} {s.uid === user.uid && <span className="text-xs font-normal bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">You</span>}
+                                        </div>
+                                        <div className="text-xs text-slate-500 flex items-center mt-0.5">
+                                            <span className="uppercase tracking-wider font-bold">{getRoleDisplayName(s.role)}</span>
+                                            <span className="mx-2">•</span> 
+                                            <span>
+                                                {s.schools === 'all' ? 'All Schools' : `${s.schools?.length || 0} Schools Assigned`}
+                                            </span>
+                                            
+                                            {/* EDIT TEACHER SCHOOLS BADGE */}
+                                            {s.role !== 'super_admin' && (
+                                                <button 
+                                                    onClick={() => {
+                                                        setEditTeacherAllSchools(s.schools === 'all');
+                                                        setEditTeacherSchoolList(s.schools === 'all' ? [] : (s.schools || []));
+                                                        setEditingTeacherSchools(s);
+                                                    }}
+                                                    className="ml-2 text-blue-600 hover:text-blue-800 bg-blue-50 p-1 rounded"
+                                                    title="Edit School Assignment"
+                                                >
+                                                    <Edit2 size={12}/>
+                                                </button>
+                                            )}
+                                        </div>
                                      </div>
                                   </div>
                                   
@@ -1314,23 +1457,39 @@ export default function App() {
                                   )}
                                </div>
                             ))}
-                            {staff.length === 0 && (
+                            {(!staff || staff.length === 0) && (
                                 <div className="p-6 text-center text-slate-400">No other staff members found.</div>
                             )}
                          </div>
 
                          {/* Pending Invites List */}
-                         {pendingInvites.length > 0 && (
-                             <div className="mt-4 border border-amber-200 rounded-xl overflow-hidden bg-amber-50">
-                                 <div className="p-3 border-b border-amber-100 font-bold text-amber-800 text-sm flex items-center gap-2">
+                         {pendingInvites?.length > 0 && (
+                             <div className="border border-amber-200 rounded-xl overflow-hidden bg-amber-50">
+                                 <div className="p-3 border-b border-amber-200 font-bold text-amber-800 text-sm flex items-center gap-2">
                                      <Mail size={16}/> Pending Invitations
                                  </div>
-                                 {pendingInvites.map(inv => (
-                                     <div key={inv.id} className="p-3 border-b last:border-b-0 border-amber-100 flex justify-between items-center text-sm">
-                                         <div className="text-amber-900">{inv.email}</div>
-                                         <button onClick={() => handleCancelInvite(inv.id)} className="text-amber-600 hover:text-red-600 font-bold text-xs px-3 py-1.5 bg-amber-100 hover:bg-red-100 rounded-lg transition-colors">Cancel</button>
-                                     </div>
-                                 ))}
+                                 <table className="w-full text-left text-sm">
+                                    <thead>
+                                        <tr className="bg-amber-100/50 text-amber-800 text-xs uppercase tracking-wider border-b border-amber-200">
+                                            <th className="p-3">Email</th>
+                                            <th className="p-3">Invite Code</th>
+                                            <th className="p-3 text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {pendingInvites.map(inv => (
+                                            <tr key={inv.id} className="border-b last:border-b-0 border-amber-100">
+                                                <td className="p-3 text-amber-900 font-medium">{inv.email}</td>
+                                                <td className="p-3">
+                                                    <span className="font-mono bg-white px-2 py-1 rounded border border-amber-200 font-bold tracking-widest">{inv.code}</span>
+                                                </td>
+                                                <td className="p-3 text-right">
+                                                    <button onClick={() => handleCancelInvite(inv.id)} className="text-amber-600 hover:text-red-600 font-bold text-xs px-3 py-1.5 bg-white hover:bg-red-50 rounded-lg transition-colors shadow-sm">Revoke</button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                 </table>
                              </div>
                          )}
 
@@ -1340,7 +1499,7 @@ export default function App() {
             </div>
           )}
 
-          {/* Super Admin / System Admin Tab */}
+          {/* Super Admin Tab */}
           {activeTab === 'system_admin' && userProfile?.role === 'super_admin' && (
             <div className="flex-1 bg-white p-8 overflow-y-auto">
               <div className="max-w-6xl mx-auto">
@@ -1352,7 +1511,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* --- Organization / Licensing Manager --- */}
                 <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden mb-8">
                   <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
                     <h2 className="font-bold text-slate-800 flex items-center gap-2"><BookOpen size={18}/> District Licenses</h2>
@@ -1386,8 +1544,8 @@ export default function App() {
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                       <tbody className="divide-y divide-slate-100">
-                         {uniqueOrgIds.map(orgId => {
-                            const orgData = organizations.find(o => o.id === orgId) || {};
+                         {uniqueOrgIds?.map(orgId => {
+                            const orgData = organizations?.find(o => o.id === orgId) || {};
                             return (
                                 <tr key={orgId} className="hover:bg-slate-50 transition-colors">
                                    <td className="p-4">
@@ -1416,7 +1574,7 @@ export default function App() {
                                 </tr>
                             );
                          })}
-                         {uniqueOrgIds.length === 0 && (
+                         {(!uniqueOrgIds || uniqueOrgIds.length === 0) && (
                             <tr><td colSpan="3" className="p-8 text-center text-slate-400">No districts have been created yet.</td></tr>
                          )}
                       </tbody>
@@ -1424,10 +1582,45 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* --- User Roster Manager --- */}
+                {/* NEW: Bootstrap District Admin */}
+                <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden mb-8">
+                  <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                    <h2 className="font-bold text-slate-800 flex items-center gap-2"><UserPlus size={18}/> Invite District Admin</h2>
+                  </div>
+                  
+                  <form onSubmit={handleSuperAdminInvite} className="p-4 flex flex-col md:flex-row gap-3 bg-white">
+                      <input 
+                         type="email" 
+                         required
+                         value={saInviteEmail}
+                         onChange={e => setSaInviteEmail(e.target.value)}
+                         placeholder="Admin Email Address" 
+                         className="p-3 border border-slate-300 rounded-xl flex-1 text-sm outline-none focus:ring-2 focus:ring-purple-500" 
+                      />
+                      <select
+                         required
+                         value={saInviteOrgId}
+                         onChange={e => setSaInviteOrgId(e.target.value)}
+                         className="p-3 border border-slate-300 rounded-xl flex-1 text-sm outline-none focus:ring-2 focus:ring-purple-500"
+                      >
+                         <option value="" disabled>Select District...</option>
+                         {organizations?.map(o => (
+                             <option key={o.id} value={o.id}>{o.name}</option>
+                         ))}
+                      </select>
+                      <button 
+                         type="submit" 
+                         className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl transition-colors shrink-0"
+                      >
+                         Generate Invite
+                      </button>
+                  </form>
+                  <div className="px-4 pb-4 pt-0 text-xs text-slate-500">Generates an invite code allowing a new user to register as the administrator for the selected district.</div>
+                </div>
+
                 <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
                   <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-                    <h2 className="font-bold text-slate-800 flex items-center gap-2"><Users size={18}/> All Registered Users ({systemUsers.length})</h2>
+                    <h2 className="font-bold text-slate-800 flex items-center gap-2"><Users size={18}/> All Registered Users ({systemUsers?.length || 0})</h2>
                   </div>
                   
                   <div className="overflow-x-auto">
@@ -1441,11 +1634,11 @@ export default function App() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
-                        {systemUsers.map(sysUser => (
+                        {systemUsers?.map(sysUser => (
                           <tr key={sysUser.uid} className="hover:bg-slate-50 transition-colors">
                             <td className="p-4">
                               <div className="font-bold text-slate-800">{sysUser.email}</div>
-                              <div className="text-xs text-slate-500">{sysUser.name || 'No Name'} • {sysUser.uid.substring(0,8)}...</div>
+                              <div className="text-xs text-slate-500">{sysUser.name || 'No Name'} • {sysUser.uid?.substring(0,8)}...</div>
                             </td>
                             <td className="p-4">
                               <select 
@@ -1454,7 +1647,7 @@ export default function App() {
                                 className="w-full max-w-[200px] p-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 outline-none"
                               >
                                 <option value="pending">Pending</option>
-                                {organizations.map(o => (
+                                {organizations?.map(o => (
                                   <option key={o.id} value={o.id}>{o.name || o.id}</option>
                                 ))}
                               </select>
@@ -1484,7 +1677,7 @@ export default function App() {
                             </td>
                           </tr>
                         ))}
-                        {systemUsers.length === 0 && (
+                        {(!systemUsers || systemUsers.length === 0) && (
                           <tr>
                             <td colSpan="4" className="p-8 text-center text-slate-400">Loading users...</td>
                           </tr>
@@ -1528,34 +1721,125 @@ export default function App() {
                     className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all" 
                   />
                </div>
-               
-               <div className="bg-amber-50 border border-amber-200 text-amber-800 p-3 rounded-xl text-xs flex items-start gap-2 mt-4">
-                  <AlertCircle size={16} className="shrink-0 mt-0.5" />
-                  <p>Adding a student attempts to assign <strong>1 License</strong> from your district quota. If no licenses are available, the profile will be created as "Unlicensed".</p>
-               </div>
 
+               <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-1">Assign to School</label>
+                  <select 
+                     required
+                     value={newStudentSchoolId}
+                     onChange={e => setNewStudentSchoolId(e.target.value)}
+                     className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                  >
+                     <option value="" disabled>Select a school...</option>
+                     {schools?.map(sch => (
+                         <option key={sch.id} value={sch.id}>{sch.name}</option>
+                     ))}
+                  </select>
+                  {(!schools || schools.length === 0) && <p className="text-xs text-red-500 mt-1">Your district admin must create schools in Settings first.</p>}
+               </div>
+               
                <div className="pt-4 flex gap-3">
                   <button type="button" onClick={() => setShowNewStudentModal(false)} className="flex-1 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-colors">Cancel</button>
-                  <button type="submit" className="flex-1 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors shadow-md">Create Profile</button>
+                  <button type="submit" disabled={!schools || schools.length === 0} className="flex-1 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors shadow-md disabled:opacity-50">Create Profile</button>
                </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* 2. Invite Teacher Modal */}
+      {/* 2. Edit Student School Modal */}
+      {editingStudentSchool && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
+                  <div className="p-6 bg-slate-100 border-b border-slate-200 flex justify-between items-center">
+                      <h3 className="text-xl font-bold text-slate-800">Assign School</h3>
+                      <button onClick={() => setEditingStudentSchool(null)} className="text-slate-400 hover:text-slate-700 p-2 rounded-full"><X size={20}/></button>
+                  </div>
+                  <form onSubmit={handleUpdateStudentSchool} className="p-6 space-y-4">
+                      <p className="text-sm text-slate-600 mb-2">Select a new school for <b>{editingStudentSchool.name}</b>.</p>
+                      <select 
+                          required
+                          value={editStudentSchoolId}
+                          onChange={e => setEditStudentSchoolId(e.target.value)}
+                          className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                      >
+                          <option value="" disabled>Select a school...</option>
+                          {schools?.map(sch => <option key={sch.id} value={sch.id}>{sch.name}</option>)}
+                      </select>
+                      <div className="pt-4 flex gap-3">
+                          <button type="button" onClick={() => setEditingStudentSchool(null)} className="flex-1 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200">Cancel</button>
+                          <button type="submit" className="flex-1 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700">Save</button>
+                      </div>
+                  </form>
+              </div>
+          </div>
+      )}
+
+      {/* 3. Edit Teacher Schools Modal */}
+      {editingTeacherSchools && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]">
+                  <div className="p-6 bg-slate-100 border-b border-slate-200 flex justify-between items-center shrink-0">
+                      <h3 className="text-xl font-bold text-slate-800">Edit Teacher Access</h3>
+                      <button onClick={() => setEditingTeacherSchools(null)} className="text-slate-400 hover:text-slate-700 p-2 rounded-full"><X size={20}/></button>
+                  </div>
+                  <form onSubmit={handleUpdateTeacherSchools} className="p-6 space-y-4 overflow-y-auto">
+                      <p className="text-sm text-slate-600 mb-2">Modify school access for <b>{editingTeacherSchools.name || editingTeacherSchools.email}</b>.</p>
+                      
+                      <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                          <label className="flex items-center gap-3 mb-3 cursor-pointer border-b border-slate-200 pb-3">
+                              <input 
+                                  type="checkbox" 
+                                  checked={editTeacherAllSchools} 
+                                  onChange={e => { 
+                                      setEditTeacherAllSchools(e.target.checked); 
+                                      if(e.target.checked) setEditTeacherSchoolList([]); 
+                                  }} 
+                                  className="w-5 h-5 accent-blue-600" 
+                              />
+                              <span className="font-bold text-slate-800">All Schools in District</span>
+                          </label>
+                          {!editTeacherAllSchools && (
+                              <div className="space-y-2 max-h-40 overflow-y-auto">
+                                  {schools?.map(sch => (
+                                      <label key={sch.id} className="flex items-center gap-3 cursor-pointer p-2 hover:bg-slate-100 rounded-lg">
+                                          <input 
+                                              type="checkbox"
+                                              checked={editTeacherSchoolList.includes(sch.id)}
+                                              onChange={e => {
+                                                  if (e.target.checked) setEditTeacherSchoolList([...editTeacherSchoolList, sch.id]);
+                                                  else setEditTeacherSchoolList(editTeacherSchoolList.filter(id => id !== sch.id));
+                                              }}
+                                              className="w-4 h-4 accent-blue-600"
+                                          />
+                                          <span className="text-sm text-slate-700">{sch.name}</span>
+                                      </label>
+                                  ))}
+                              </div>
+                          )}
+                      </div>
+                      <div className="pt-2 flex gap-3">
+                          <button type="button" onClick={() => setEditingTeacherSchools(null)} className="flex-1 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200">Cancel</button>
+                          <button type="submit" className="flex-1 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700">Save Changes</button>
+                      </div>
+                  </form>
+              </div>
+          </div>
+      )}
+
+      {/* 4. Invite Teacher Modal */}
       {showInviteModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
-            <div className="p-6 bg-blue-600 text-white flex justify-between items-center">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="p-6 bg-blue-600 text-white flex justify-between items-center shrink-0">
               <div>
                 <h3 className="text-xl font-bold">Invite Teacher</h3>
-                <p className="text-blue-100 text-sm mt-1">Add a staff member to your district.</p>
+                <p className="text-blue-100 text-sm mt-1">Add a staff member and assign schools.</p>
               </div>
               <button onClick={() => setShowInviteModal(false)} className="text-blue-200 hover:text-white bg-blue-700/50 hover:bg-blue-700 p-2 rounded-full transition-colors"><X size={20}/></button>
             </div>
             
-            <form onSubmit={handleInviteTeacher} className="p-6 space-y-4">
+            <form onSubmit={handleInviteTeacher} className="p-6 space-y-4 overflow-y-auto">
                <div>
                   <label className="block text-sm font-bold text-slate-700 mb-1">Teacher's Email Address</label>
                   <input 
@@ -1568,19 +1852,57 @@ export default function App() {
                     className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all" 
                   />
                </div>
-               
-               <p className="text-sm text-slate-500">When they sign in with this email, they will automatically be assigned to <b>{orgDetails?.name || userProfile?.orgId}</b>.</p>
 
-               <div className="pt-4 flex gap-3">
+               {/* School Assignment Multi-select */}
+               <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                  <label className="block text-sm font-bold text-slate-700 mb-2 border-b border-slate-200 pb-2">School Access</label>
+                  
+                  <label className="flex items-center gap-3 mb-3 cursor-pointer">
+                      <input 
+                         type="checkbox" 
+                         checked={inviteAllSchools}
+                         onChange={(e) => {
+                             setInviteAllSchools(e.target.checked);
+                             if (e.target.checked) setInviteSchools([]);
+                         }}
+                         className="w-5 h-5 accent-blue-600"
+                      />
+                      <span className="font-bold text-slate-800">All Schools in District</span>
+                  </label>
+
+                  {!inviteAllSchools && (
+                      <div className="space-y-2 pl-2 max-h-40 overflow-y-auto pr-2">
+                          {schools?.map(sch => (
+                              <label key={sch.id} className="flex items-center gap-3 cursor-pointer p-2 hover:bg-slate-100 rounded-lg">
+                                  <input 
+                                     type="checkbox"
+                                     checked={inviteSchools.includes(sch.id)}
+                                     onChange={(e) => {
+                                         if (e.target.checked) setInviteSchools([...inviteSchools, sch.id]);
+                                         else setInviteSchools(inviteSchools.filter(id => id !== sch.id));
+                                     }}
+                                     className="w-4 h-4 accent-blue-600"
+                                  />
+                                  <span className="text-sm text-slate-700">{sch.name}</span>
+                              </label>
+                          ))}
+                          {(!schools || schools.length === 0) && <p className="text-xs text-red-500">No schools created yet.</p>}
+                      </div>
+                  )}
+               </div>
+               
+               <p className="text-xs text-slate-500">This will generate a 6-character Invite Code that the teacher must use to register their account.</p>
+
+               <div className="pt-2 flex gap-3">
                   <button type="button" onClick={() => setShowInviteModal(false)} className="flex-1 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-colors">Cancel</button>
-                  <button type="submit" className="flex-1 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors shadow-md">Send Invite</button>
+                  <button type="submit" className="flex-1 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors shadow-md">Generate Invite</button>
                </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* 3. Pairing / Live Camera Modal */}
+      {/* 5. Pairing / Live Camera Modal */}
       {showPairingModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col">
@@ -1593,10 +1915,8 @@ export default function App() {
             </div>
             
             <div className="p-6 text-center space-y-4">
-               {/* Camera View */}
                <div className="relative w-full aspect-square md:aspect-video bg-black rounded-2xl overflow-hidden shadow-inner flex items-center justify-center">
                   <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover"></video>
-                  {/* Overlay scanning bracket */}
                   <div className="absolute inset-0 border-[12px] border-black/40 pointer-events-none flex items-center justify-center">
                      <div className="w-3/4 h-3/4 border-2 border-blue-500 rounded-xl relative">
                         <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-blue-500/50 animate-pulse"></div>
@@ -1635,7 +1955,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 4. New Blank Master Page Modal */}
+      {/* 6. New Blank Master Page Modal */}
       {showNewPageModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
@@ -1678,7 +1998,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 5. Edit Existing Library Page Metadata Modal */}
+      {/* 7. Edit Existing Library Page Metadata Modal */}
       {editingLibraryPage && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
@@ -1719,7 +2039,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 6. Push Master Page to Student Modal */}
+      {/* 8. Push Master Page to Student Modal */}
       {showPushModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
@@ -1735,13 +2055,13 @@ export default function App() {
                
                <div>
                   <label className="block text-sm font-bold text-slate-700 mb-3">Select Master Page from Library</label>
-                  {library.length === 0 ? (
+                  {(!library || library.length === 0) ? (
                       <div className="p-4 bg-slate-50 rounded-xl text-center text-slate-500 text-sm border border-slate-200">
                           Your district library is empty. Go to the Library tab to create or upload a page first.
                       </div>
                   ) : (
                       <div className="space-y-2 max-h-64 overflow-y-auto pr-2">
-                          {library.map(lib => (
+                          {library?.map(lib => (
                               <label 
                                 key={lib.id} 
                                 className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${selectedLibraryPageId === lib.id ? 'bg-blue-50 border-blue-300 ring-1 ring-blue-500' : 'bg-white border-slate-200 hover:bg-slate-50'}`}
@@ -1768,7 +2088,7 @@ export default function App() {
 
                <div className="pt-2 flex gap-3 border-t border-slate-100">
                   <button type="button" onClick={() => setShowPushModal(false)} className="flex-1 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-colors">Cancel</button>
-                  <button type="submit" disabled={!selectedLibraryPageId || library.length === 0} className="flex-1 flex items-center justify-center gap-2 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors shadow-md disabled:opacity-50">
+                  <button type="submit" disabled={!selectedLibraryPageId || !library || library.length === 0} className="flex-1 flex items-center justify-center gap-2 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors shadow-md disabled:opacity-50">
                       <Send size={18} /> Push to Device
                   </button>
                </div>
@@ -1778,18 +2098,5 @@ export default function App() {
       )}
 
     </div>
-  );
-}
-
-// Simple Camera Icon for the button
-function ScanIcon() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 7V5a2 2 0 0 1 2-2h2"></path>
-      <path d="M17 3h2a2 2 0 0 1 2 2v2"></path>
-      <path d="M21 17v2a2 2 0 0 1-2 2h-2"></path>
-      <path d="M7 21H5a2 2 0 0 1-2-2v-2"></path>
-      <circle cx="12" cy="12" r="3"></circle>
-    </svg>
   );
 }
