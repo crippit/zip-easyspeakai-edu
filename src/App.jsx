@@ -270,7 +270,6 @@ export default function App() {
       setSelectedStudent(prev => {
         if (!prev) return null;
         const updated = studentData.find(s => s.id === prev.id);
-        // REMOVED illegal state update that was blocking the UI here
         return updated || null;
       });
     });
@@ -351,7 +350,7 @@ export default function App() {
     } else {
         setRemoteDevicePin('');
     }
-  }, [selectedStudent?.id]);
+  }, [selectedStudent?.id, selectedStudent?.adminPin]);
 
   // 3. Super Admin Live Feeds
   useEffect(() => {
