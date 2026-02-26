@@ -270,9 +270,7 @@ export default function App() {
       setSelectedStudent(prev => {
         if (!prev) return null;
         const updated = studentData.find(s => s.id === prev.id);
-        if (updated && updated.adminPin !== undefined) {
-            setRemoteDevicePin(updated.adminPin);
-        }
+        // REMOVED illegal state update that was blocking the UI here
         return updated || null;
       });
     });
@@ -345,6 +343,15 @@ export default function App() {
       unsubLogs();
     };
   }, [userProfile]);
+
+  // Keep remote PIN input synced with the currently selected student
+  useEffect(() => {
+    if (selectedStudent) {
+        setRemoteDevicePin(selectedStudent.adminPin || '');
+    } else {
+        setRemoteDevicePin('');
+    }
+  }, [selectedStudent?.id]);
 
   // 3. Super Admin Live Feeds
   useEffect(() => {
