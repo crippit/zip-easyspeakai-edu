@@ -164,6 +164,7 @@ export default function App() {
   const libraryUploadRef = useRef(null);
   const videoRef = useRef(null);
   const streamRef = useRef(null);
+  const [isStreamReady, setIsStreamReady] = useState(false);
 
   // 1. Listen for Firebase Login state changes & Fetch Profile
   useEffect(() => {
@@ -374,22 +375,60 @@ export default function App() {
     }
   }, [userProfile]);
 
-  // 4. Camera Stream
+  // 4. Camera Stream & QR Scanner Loop
   useEffect(() => {
+    let scanAnimationFrame;
+    
     if (showPairingModal) {
+      setIsStreamReady(false);
       navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
         .then(stream => {
           streamRef.current = stream;
-          if (videoRef.current) videoRef.current.srcObject = stream;
+          if (videoRef.current) {
+             videoRef.current.srcObject = stream;
+             videoRef.current.setAttribute("playsinline", true);
+             videoRef.current.play();
+             setIsStreamReady(true);
+             
+             // --- QR Scanning Loop ---
+             const canvas = document.createElement("canvas");
+             const ctx = canvas.getContext("2d");
+             
+             const scanQRCode = () => {
+                if (videoRef.current && videoRef.current.readyState === videoRef.current.HAVE_ENOUGH_DATA) {
+                    canvas.height = videoRef.current.videoHeight;
+                    canvas.width = videoRef.current.videoWidth;
+                    ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+                    
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    
+                    if (window.jsQR) {
+                        const code = window.jsQR(imageData.data, imageData.width, imageData.height, {
+                            inversionAttempts: "dontInvert"
+                        });
+                        if (code && code.data && code.data.length === 10) {
+                            setPairingCode(code.data.toUpperCase());
+                        }
+                    }
+                }
+                scanAnimationFrame = requestAnimationFrame(scanQRCode);
+             };
+             
+             scanAnimationFrame = requestAnimationFrame(scanQRCode);
+          }
         })
         .catch(err => console.error("Camera access denied", err));
     } else {
+      setIsStreamReady(false);
+      if (scanAnimationFrame) cancelAnimationFrame(scanAnimationFrame);
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(t => t.stop());
         streamRef.current = null;
       }
     }
     return () => {
+      setIsStreamReady(false);
+      if (scanAnimationFrame) cancelAnimationFrame(scanAnimationFrame);
       if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
     };
   }, [showPairingModal]);
@@ -1907,7 +1946,7 @@ export default function App() {
                <div className="relative w-full aspect-square md:aspect-video bg-black rounded-2xl overflow-hidden shadow-inner flex items-center justify-center">
                   <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover"></video>
                   <div className="absolute inset-0 border-[12px] border-black/40 pointer-events-none flex items-center justify-center"><div className="w-3/4 h-3/4 border-2 border-blue-500 rounded-xl relative"><div className="absolute top-1/2 left-0 right-0 h-0.5 bg-blue-500/50 animate-pulse"></div></div></div>
-                  {!streamRef.current && (<div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 p-4"><Loader2 size={32} className="animate-spin mb-2" /><p className="text-sm">Requesting camera access...</p></div>)}
+                  {!isStreamReady && (<div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 p-4"><Loader2 size={32} className="animate-spin mb-2" /><p className="text-sm">Requesting camera access...</p></div>)}
                </div>
                <p className="text-sm text-slate-600 font-medium">Point your camera at the QR code displayed on the student's device.</p>
                <div className="relative flex items-center py-2"><div className="flex-grow border-t border-slate-200"></div><span className="flex-shrink-0 mx-4 text-slate-400 text-xs font-bold uppercase tracking-wider">Or enter manual code</span><div className="flex-grow border-t border-slate-200"></div></div>
