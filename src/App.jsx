@@ -1290,7 +1290,7 @@ export default function App() {
         <header className="w-full px-6 py-4 flex items-center justify-between z-20 max-w-7xl mx-auto">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center font-bold text-2xl text-white shadow-inner">Z</div>
-            <span className="font-bold text-2xl tracking-tight text-slate-900">Zip EasySpeak</span>
+            <span className="font-bold text-2xl tracking-tight text-slate-900">Zip EasySpeak for Education</span>
           </div>
           <div className="hidden md:flex gap-8 text-sm font-bold text-slate-500">
             <a href="#features" className="hover:text-blue-600 transition-colors">Features</a>
@@ -1365,13 +1365,13 @@ export default function App() {
            <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
               <div className="flex items-center gap-2">
                  <div className="w-6 h-6 bg-slate-700 text-white rounded flex items-center justify-center font-bold text-xs">Z</div>
-                 <span className="font-bold text-slate-300">Zip EasySpeak Admin</span>
+                 <span className="font-bold text-slate-300">Zip EasySpeak for Education</span>
               </div>
-              <div className="text-sm">© 2026 Zip Education Systems. All rights reserved.</div>
+              <div className="text-sm">© 2026 Zip Solutions. All rights reserved.</div>
               <div className="flex gap-4">
-                 <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
-                 <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
-                 <a href="#" className="hover:text-white transition-colors">Support Center</a>
+                 <a href="https://zipsolutions.org/privacy" className="hover:text-white transition-colors">Privacy Policy</a>
+                 <a href="https://zipsolutions.org/" className="hover:text-white transition-colors">Terms of Service</a>
+                 <a href="https://github.com/crippit/zipEasySpeakAI/issues" className="hover:text-white transition-colors">Support Center</a>
               </div>
            </div>
         </footer>
