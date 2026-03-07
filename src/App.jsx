@@ -1352,8 +1352,8 @@ export default function App() {
                 </div>
                 <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
                    <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mb-6"><Monitor size={28} /></div>
-                   <h3 className="text-xl font-bold text-slate-800 mb-3">Live Device Fleet</h3>
-                   <p className="text-slate-500 leading-relaxed">See which student tablet is currently in use, monitor battery levels, and track sync statuses across your entire caseload.</p>
+                   <h3 className="text-xl font-bold text-slate-800 mb-3">Student Device Profiles</h3>
+                   <p className="text-slate-500 leading-relaxed">View all enrolled student tablets from a single dashboard. Track app versions, monitor storage usage, and assign remote device PINs.</p>
                 </div>
              </div>
           </div>
