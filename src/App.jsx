@@ -42,6 +42,8 @@ import {
   Sparkles
 } from 'lucide-react';
 import { CreateWebWorkerMLCEngine } from "@mlc-ai/web-llm";
+import { createAvatar } from '@dicebear/core';
+import { notionists } from '@dicebear/collection';
 
 /**
  * FIREBASE INITIALIZATION
@@ -81,6 +83,7 @@ export default function App() {
   
   // Login / Reg Form State
   const [isRegistering, setIsRegistering] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [regName, setRegName] = useState('');
@@ -1272,78 +1275,187 @@ export default function App() {
     );
   }
 
-  // --- UI: Login / Register Screen ---
+  // --- UI: Landing Page (Unauthenticated) ---
   if (!user) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
-        <div className="bg-white rounded-3xl shadow-xl w-full max-w-md p-8 border border-slate-100 transition-all">
-          <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center font-bold text-3xl text-white shadow-inner mx-auto mb-6">Z</div>
-          <h1 className="text-2xl font-bold text-center text-slate-800 mb-2">Teacher Dashboard</h1>
-          <p className="text-center text-slate-500 text-sm mb-8">
-             {isRegistering ? 'Join your district using an invite code' : 'Sign in to manage your caseload'}
-          </p>
-          
-          {loginError && (
-            <div className="bg-red-50 text-red-600 p-3 rounded-xl text-sm font-medium flex items-start gap-2 mb-4 break-words border border-red-200 shadow-sm">
-              <AlertCircle size={16} className="shrink-0 mt-0.5" /> 
-              <span>{loginError}</span>
-            </div>
-          )}
+      <div className="min-h-screen font-sans bg-slate-50 text-slate-800 flex flex-col relative overflow-hidden">
+        
+        {/* Decorative Background Elements */}
+        <div className="absolute top-0 left-0 w-full h-[600px] overflow-hidden -z-10 pointer-events-none">
+           <div className="absolute -top-[300px] left-[50%] -translate-x-[50%] w-[1200px] h-[1200px] bg-gradient-to-b from-blue-100/60 to-transparent rounded-full blur-3xl opacity-50"></div>
+           <div className="absolute top-[100px] -right-[200px] w-[500px] h-[500px] bg-purple-200/40 rounded-full blur-3xl opacity-60 mix-blend-multiply"></div>
+        </div>
 
-          {!isRegistering && (
-             <div className="space-y-3 mb-6">
-                <button onClick={() => handleOAuthLogin('google')} disabled={isLoggingIn} className="w-full py-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold rounded-xl shadow-sm transition-all flex items-center justify-center gap-3 disabled:opacity-50">
-                  <svg className="w-5 h-5" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-                  Sign in with Google
-                </button>
-                <button onClick={() => handleOAuthLogin('microsoft')} disabled={isLoggingIn} className="w-full py-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold rounded-xl shadow-sm transition-all flex items-center justify-center gap-3 disabled:opacity-50">
-                  <svg className="w-5 h-5" viewBox="0 0 21 21"><path fill="#f35325" d="M1 1h9v9H1z"/><path fill="#81bc06" d="M11 1h9v9h-9z"/><path fill="#05a6f0" d="M1 11h9v9H1z"/><path fill="#ffba08" d="M11 11h9v9h-9z"/></svg>
-                  Sign in with Microsoft
-                </button>
-                <div className="relative flex items-center py-2">
-                  <div className="flex-grow border-t border-slate-200"></div>
-                  <span className="flex-shrink-0 mx-4 text-slate-400 text-xs font-bold uppercase tracking-wider">Or email</span>
-                  <div className="flex-grow border-t border-slate-200"></div>
+        {/* Public Header */}
+        <header className="w-full px-6 py-4 flex items-center justify-between z-20 max-w-7xl mx-auto">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center font-bold text-2xl text-white shadow-inner">Z</div>
+            <span className="font-bold text-2xl tracking-tight text-slate-900">Zip EasySpeak</span>
+          </div>
+          <div className="hidden md:flex gap-8 text-sm font-bold text-slate-500">
+            <a href="#features" className="hover:text-blue-600 transition-colors">Features</a>
+            <a href="#how-it-works" className="hover:text-blue-600 transition-colors">How it Works</a>
+            <a href="#resources" className="hover:text-blue-600 transition-colors">Resources</a>
+          </div>
+          <button onClick={() => setShowLoginModal(true)} className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl shadow-md transition-all">Sign In</button>
+        </header>
+
+        {/* Hero Section */}
+        <main className="flex-1 flex flex-col items-center pt-20 lg:pt-32 px-6 max-w-7xl mx-auto w-full z-10 relative">
+          
+          <div className="text-center max-w-4xl mx-auto mb-16">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-50 text-blue-700 font-bold text-sm mb-6 border border-blue-100">
+               <Sparkles size={16} /> Now with built-in AI Context Generation
+            </div>
+            <h1 className="text-5xl lg:text-7xl font-extrabold text-slate-900 tracking-tight leading-[1.1] mb-6">
+              Empower Every Voice in Your District
+            </h1>
+            <p className="text-xl text-slate-500 mb-10 max-w-2xl mx-auto leading-relaxed">
+              The modern, centralized dashboard for managing special education AAC devices. Pre-configure tablets, push custom pages instantly, and integrate offline AI all from one place.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <button onClick={() => { setIsRegistering(true); setShowLoginModal(true); }} className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-lg shadow-blue-600/20 text-lg transition-transform hover:scale-105 active:scale-95 w-full sm:w-auto">
+                 Join Your District
+              </button>
+              <button className="px-8 py-4 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-bold rounded-2xl shadow-sm text-lg transition-colors w-full sm:w-auto">
+                 Request Demo
+              </button>
+            </div>
+          </div>
+
+          {/* Hero Image / Mockup */}
+          <div className="relative w-full max-w-5xl mx-auto mb-32 group perspective-1000">
+             <div className="absolute inset-x-0 -bottom-10 h-10 bg-slate-900/10 blur-xl rounded-[100%]"></div>
+             <img 
+                src="/hero-mockup.png" 
+                alt="EasySpeak Dashboard Mockup" 
+                className="w-full h-auto rounded-3xl md:rounded-[40px] shadow-2xl shadow-slate-300 border border-slate-200/50 object-cover bg-white"
+             />
+          </div>
+
+          {/* Features Grid */}
+          <div id="features" className="w-full py-20 border-t border-slate-200/60">
+             <div className="text-center mb-16">
+                <h2 className="text-3xl font-bold text-slate-900 mb-4">Everything a Teacher Needs</h2>
+                <p className="text-slate-500 max-w-xl mx-auto">Built specifically for Special Education workflows, bringing all your student devices under one glass pane.</p>
+             </div>
+             <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+                <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                   <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-6"><Settings2 size={28} /></div>
+                   <h3 className="text-xl font-bold text-slate-800 mb-3">Remote Device Config</h3>
+                   <p className="text-slate-500 leading-relaxed">Pre-configure theme, voice model, and layout styles for student tablets before they even connect to the Wi-Fi.</p>
+                </div>
+                <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                   <div className="w-14 h-14 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center mb-6"><BookOpen size={28} /></div>
+                   <h3 className="text-xl font-bold text-slate-800 mb-3">District Page Library</h3>
+                   <p className="text-slate-500 leading-relaxed">Create communication boards once, store them in the District Library, and push them to any student's device instantly.</p>
+                </div>
+                <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                   <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mb-6"><Monitor size={28} /></div>
+                   <h3 className="text-xl font-bold text-slate-800 mb-3">Live Device Fleet</h3>
+                   <p className="text-slate-500 leading-relaxed">See which student tablet is currently in use, monitor battery levels, and track sync statuses across your entire caseload.</p>
                 </div>
              </div>
-          )}
-          
-          <form onSubmit={isRegistering ? handleRegisterWithCode : handleLogin} className="space-y-4">
-            {isRegistering && (
-               <>
-                  <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-1">Full Name</label>
-                    <input type="text" required value={regName} onChange={e => setRegName(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="Jane Doe"/>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-1 flex items-center gap-1"><Key size={14} className="text-blue-500"/> District Invite Code</label>
-                    <input type="text" required value={regInviteCode} onChange={e => setRegInviteCode(e.target.value)} className="w-full p-3 bg-blue-50 border border-blue-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-mono tracking-widest text-lg uppercase" placeholder="6-CHAR" maxLength={6}/>
-                  </div>
-               </>
-            )}
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1">Email Address</label>
-              <input type="email" required value={loginEmail} onChange={e => setLoginEmail(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="teacher@school.edu"/>
-            </div>
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1">Password</label>
-              <input type="password" required value={loginPassword} onChange={e => setLoginPassword(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="••••••••"/>
-            </div>
-            <button type="submit" disabled={isLoggingIn} className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl shadow-md transition-all disabled:opacity-70 flex justify-center items-center gap-2 mt-2">
-              {isLoggingIn ? <Loader2 className="animate-spin" size={20} /> : (isRegistering ? 'Join District' : 'Sign In')}
-            </button>
-          </form>
-
-          <div className="mt-8 pt-4 border-t border-slate-100 text-center">
-              <button 
-                 type="button" 
-                 onClick={() => { setIsRegistering(!isRegistering); setLoginError(''); }} 
-                 className="text-sm font-bold text-blue-600 hover:underline"
-              >
-                  {isRegistering ? 'Already have an account? Sign In' : 'Have an Invite Code? Sign Up'}
-              </button>
           </div>
-        </div>
+
+        </main>
+
+        {/* Footer */}
+        <footer className="w-full bg-slate-900 text-slate-400 py-12 px-6 mt-20">
+           <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+              <div className="flex items-center gap-2">
+                 <div className="w-6 h-6 bg-slate-700 text-white rounded flex items-center justify-center font-bold text-xs">Z</div>
+                 <span className="font-bold text-slate-300">Zip EasySpeak Admin</span>
+              </div>
+              <div className="text-sm">© 2026 Zip Education Systems. All rights reserved.</div>
+              <div className="flex gap-4">
+                 <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
+                 <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
+                 <a href="#" className="hover:text-white transition-colors">Support Center</a>
+              </div>
+           </div>
+        </footer>
+
+        {/* --- LOGIN MODAL W/ ORIGINAL LOGIC --- */}
+        {showLoginModal && (
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 border border-slate-100 relative animate-in fade-in zoom-in-95 duration-200">
+              <button 
+                 onClick={() => { setShowLoginModal(false); setLoginError(''); }}
+                 className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-full transition-colors"
+              >
+                  <X size={20} />
+              </button>
+
+              <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center font-bold text-2xl text-white shadow-inner mx-auto mb-4">Z</div>
+              <h1 className="text-2xl font-bold text-center text-slate-800 mb-2">Welcome Back</h1>
+              <p className="text-center text-slate-500 text-sm mb-8">
+                 {isRegistering ? 'Join your district using an invite code' : 'Sign in to manage your caseload'}
+              </p>
+              
+              {loginError && (
+                <div className="bg-red-50 text-red-600 p-3 rounded-xl text-sm font-medium flex items-start gap-2 mb-4 break-words border border-red-200 shadow-sm animate-pulse">
+                  <AlertCircle size={16} className="shrink-0 mt-0.5" /> 
+                  <span>{loginError}</span>
+                </div>
+              )}
+
+              {!isRegistering && (
+                 <div className="space-y-3 mb-6">
+                    <button onClick={() => handleOAuthLogin('google')} disabled={isLoggingIn} className="w-full py-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold rounded-xl shadow-sm transition-all flex items-center justify-center gap-3 disabled:opacity-50">
+                      <svg className="w-5 h-5" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+                      Sign in with Google
+                    </button>
+                    <button onClick={() => handleOAuthLogin('microsoft')} disabled={isLoggingIn} className="w-full py-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold rounded-xl shadow-sm transition-all flex items-center justify-center gap-3 disabled:opacity-50">
+                      <svg className="w-5 h-5" viewBox="0 0 21 21"><path fill="#f35325" d="M1 1h9v9H1z"/><path fill="#81bc06" d="M11 1h9v9h-9z"/><path fill="#05a6f0" d="M1 11h9v9H1z"/><path fill="#ffba08" d="M11 11h9v9h-9z"/></svg>
+                      Sign in with Microsoft
+                    </button>
+                    <div className="relative flex items-center py-2">
+                      <div className="flex-grow border-t border-slate-200"></div>
+                      <span className="flex-shrink-0 mx-4 text-slate-400 text-xs font-bold uppercase tracking-wider">Or email</span>
+                      <div className="flex-grow border-t border-slate-200"></div>
+                    </div>
+                 </div>
+              )}
+              
+              <form onSubmit={isRegistering ? handleRegisterWithCode : handleLogin} className="space-y-4">
+                {isRegistering && (
+                   <>
+                      <div>
+                        <label className="block text-sm font-bold text-slate-700 mb-1">Full Name</label>
+                        <input type="text" required value={regName} onChange={e => setRegName(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="Jane Doe"/>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold text-slate-700 mb-1 flex items-center gap-1"><Key size={14} className="text-blue-500"/> District Invite Code</label>
+                        <input type="text" required value={regInviteCode} onChange={e => setRegInviteCode(e.target.value)} className="w-full p-3 bg-blue-50 border border-blue-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-mono tracking-widest text-lg uppercase" placeholder="6-CHAR" maxLength={6}/>
+                      </div>
+                   </>
+                )}
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-1">Email Address</label>
+                  <input type="email" required value={loginEmail} onChange={e => setLoginEmail(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="teacher@school.edu"/>
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-1">Password</label>
+                  <input type="password" required value={loginPassword} onChange={e => setLoginPassword(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="••••••••"/>
+                </div>
+                <button type="submit" disabled={isLoggingIn} className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl shadow-md transition-all disabled:opacity-70 flex justify-center items-center gap-2 mt-2 hover:shadow-lg">
+                  {isLoggingIn ? <Loader2 className="animate-spin" size={20} /> : (isRegistering ? 'Join District' : 'Sign In')}
+                </button>
+              </form>
+
+              <div className="mt-8 pt-4 border-t border-slate-100 text-center">
+                  <button 
+                     type="button" 
+                     onClick={() => { setIsRegistering(!isRegistering); setLoginError(''); }} 
+                     className="text-sm font-bold text-blue-600 hover:underline"
+                  >
+                      {isRegistering ? 'Already have an account? Sign In' : 'Have an Invite Code? Sign Up'}
+                  </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -1488,18 +1600,21 @@ export default function App() {
                     visibleStudents.map(student => {
                       const schoolName = schools?.find(s => s.id === student.schoolId)?.name || 'Unassigned';
                       return (
-                        <button key={student.id} onClick={() => setSelectedStudent(student)} className={`w-full text-left p-3 rounded-xl transition-all border ${selectedStudent?.id === student.id ? 'bg-white border-blue-200 shadow-sm ring-1 ring-blue-500' : 'bg-transparent border-transparent hover:bg-white hover:border-slate-200'}`}>
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="font-bold text-slate-800">{student.name}</span>
-                            {student.status === 'online' ? (
-                              <span className="flex items-center gap-1 text-[10px] font-bold text-green-600 uppercase tracking-wider"><Wifi size={12} /> Syncing</span>
-                            ) : (
-                              <span className="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider"><WifiOff size={12} /> Offline</span>
-                            )}
-                          </div>
-                          <div className="flex items-center justify-between text-xs text-slate-500">
-                            <span className="flex items-center gap-1"><Smartphone size={12}/> {student.device}</span>
-                            <span className="flex items-center gap-1 px-1.5 py-0.5 bg-slate-100 rounded text-[10px] truncate max-w-[100px]"><Building size={10}/> {schoolName}</span>
+                        <button key={student.id} onClick={() => setSelectedStudent(student)} className={`w-full text-left p-3 rounded-xl transition-all border flex gap-3 ${selectedStudent?.id === student.id ? 'bg-white border-blue-200 shadow-sm ring-1 ring-blue-500' : 'bg-transparent border-transparent hover:bg-white hover:border-slate-200'}`}>
+                          <img src={createAvatar(notionists, { seed: student.id, backgroundColor: ["b6e3f4","c0aede","d1d4f9","ffdfbf"] }).toDataUri()} alt={student.name} className="w-10 h-10 rounded-full bg-slate-100 shrink-0 border border-slate-200/50 shadow-sm" />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="font-bold text-slate-800 truncate">{student.name}</span>
+                              {student.status === 'online' ? (
+                                <span className="flex items-center gap-1 text-[10px] font-bold text-green-600 uppercase tracking-wider shrink-0 ml-2"><Wifi size={12} /> Syncing</span>
+                              ) : (
+                                <span className="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0 ml-2"><WifiOff size={12} /> Offline</span>
+                              )}
+                            </div>
+                            <div className="flex items-center justify-between text-xs text-slate-500">
+                              <span className="flex items-center gap-1 truncate"><Smartphone size={12}/> {student.device}</span>
+                              <span className="flex items-center gap-1 px-1.5 py-0.5 bg-slate-100 rounded text-[10px] truncate max-w-[100px] shrink-0"><Building size={10}/> {schoolName}</span>
+                            </div>
                           </div>
                         </button>
                       );
@@ -1522,8 +1637,11 @@ export default function App() {
                     )}
                     <div className="flex items-start justify-between mb-8">
                       <div>
-                        <div className="flex items-center gap-3 mb-2">
+                        <div className="flex items-center gap-4 mb-3">
+                           <img src={createAvatar(notionists, { seed: selectedStudent.id, backgroundColor: ["b6e3f4","c0aede","d1d4f9","ffdfbf"] }).toDataUri()} alt={selectedStudent.name} className="w-16 h-16 rounded-2xl bg-slate-100 border-2 border-white shadow-md shadow-slate-200/50" />
                            <h1 className="text-3xl font-bold text-slate-900">{selectedStudent.name}'s Profile</h1>
+                        </div>
+                        <div className="flex items-center gap-3 mb-2">
                            {(userProfile?.role === 'district_admin' || userProfile?.role === 'super_admin') ? (
                                <button onClick={() => { setEditStudentSchoolId(selectedStudent.schoolId || ''); setEditingStudentSchool(selectedStudent); }} className="bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-700 px-3 py-1 rounded-full text-sm font-bold flex items-center gap-1.5 border border-slate-200 transition-colors" title="Change School Assignment">
                                    <Building size={16}/> {schools?.find(s => s.id === selectedStudent.schoolId)?.name || 'Assign School'} <Edit2 size={14} className="ml-1 opacity-50"/>
