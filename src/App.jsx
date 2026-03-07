@@ -112,6 +112,7 @@ export default function App() {
   // --- Super Admin State ---
   const [systemUsers, setSystemUsers] = useState([]); 
   const [organizations, setOrganizations] = useState([]);
+  const [systemStudents, setSystemStudents] = useState([]);
   const [saInviteEmail, setSaInviteEmail] = useState('');
   const [saInviteOrgId, setSaInviteOrgId] = useState('');
 
@@ -382,6 +383,9 @@ export default function App() {
       const unsubOrgs = onSnapshot(collection(db, 'organizations'), (snapshot) => {
         setOrganizations(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       });
+      const unsubStudentsAll = onSnapshot(collection(db, 'students'), (snapshot) => {
+        setSystemStudents(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      });
       const unsubLogsAll = onSnapshot(collection(db, 'audit_logs'), (snapshot) => {
         const logs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         logs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -390,6 +394,7 @@ export default function App() {
       return () => {
          unsubUsers();
          unsubOrgs();
+         unsubStudentsAll();
          unsubLogsAll();
       };
     }
@@ -1979,7 +1984,7 @@ export default function App() {
                             return (
                                 <tr key={orgId} className="hover:bg-slate-50 transition-colors">
                                    <td className="p-4"><div className="font-bold text-slate-800">{orgData.name || 'Unnamed District'}</div><div className="text-xs text-slate-400 font-mono">ID: {orgId}</div></td>
-                                   <td className="p-4 w-48"><div className="flex items-center gap-2"><input id={`lic-${orgId}`} defaultValue={orgData.licenses || 0} type="number" className="p-2 border border-slate-300 rounded-lg w-20 text-sm text-center font-mono outline-none focus:border-blue-500" /><span className="text-xs font-bold text-slate-500 uppercase">Licenses</span></div></td>
+                                   <td className="p-4 w-48"><div className="flex flex-col gap-1"><div className="flex items-center gap-2"><input id={`lic-${orgId}`} defaultValue={orgData.licenses || 0} type="number" className="p-2 border border-slate-300 rounded-lg w-20 text-sm text-center font-mono outline-none focus:border-blue-500" /><span className="text-xs font-bold text-slate-500 uppercase">Licenses</span></div><div className="text-[10px] text-slate-500 font-bold ml-1">Activated: <span className="text-blue-600">{systemStudents?.filter(s => s.orgId === orgId && s.hasLicense !== false).length || 0}</span></div></div></td>
                                    <td className="p-4 text-right w-48"><div className="flex items-center justify-end gap-2"><button onClick={() => handleUpdateOrgLicense(orgId, document.getElementById(`lic-${orgId}`).value)} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg text-sm transition-colors">Save</button><button onClick={() => openSANukeModal(orgId, orgData.name)} className="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors" title="Delete District"><Trash2 size={18} /></button></div></td>
                                 </tr>
                             );
