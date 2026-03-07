@@ -35,8 +35,13 @@ import {
   ShieldAlert,
   History,
   AlertTriangle,
-  Megaphone
+  Megaphone,
+  Monitor,
+  Volume2,
+  Settings2,
+  Sparkles
 } from 'lucide-react';
+import { CreateWebWorkerMLCEngine } from "@mlc-ai/web-llm";
 
 /**
  * FIREBASE INITIALIZATION
@@ -134,6 +139,21 @@ export default function App() {
   const [editingTeacherSchools, setEditingTeacherSchools] = useState(null);
   const [editTeacherAllSchools, setEditTeacherAllSchools] = useState(false);
   const [editTeacherSchoolList, setEditTeacherSchoolList] = useState([]);
+
+  // --- District Default Settings State ---
+  const [districtTheme, setDistrictTheme] = useState('Light');
+  const [districtVoice, setDistrictVoice] = useState('Standard Female');
+  const [districtLayout, setDistrictLayout] = useState('Grid');
+
+  // --- Student Settings Modal State ---
+  const [showStudentSettingsModal, setShowStudentSettingsModal] = useState(false);
+  const [editTheme, setEditTheme] = useState('Light');
+  const [editAiContext, setEditAiContext] = useState('');
+  const [editVoiceModel, setEditVoiceModel] = useState('Standard Female');
+  const [editLayout, setEditLayout] = useState('Grid');
+  const [isGeneratingAiContext, setIsGeneratingAiContext] = useState(false);
+  const [aiGeneratorProgress, setAiGeneratorProgress] = useState(0);
+  const mlcEngineRef = useRef(null);
 
   // Invite Modal
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -1142,6 +1162,101 @@ export default function App() {
     }
   };
 
+  const handleSaveDistrictDefaults = async () => {
+      if (!userProfile?.orgId) return;
+      try {
+          await updateDoc(doc(db, 'organizations', userProfile.orgId), {
+              defaultSettings: {
+                  theme: districtTheme,
+                  voice: districtVoice,
+                  layout: districtLayout
+              },
+              updatedAt: new Date().toISOString()
+          });
+          writeAuditLog('UPDATE_DISTRICT_DEFAULTS', `Updated district-wide default device settings.`);
+          alert("District Defaults saved successfully.");
+      } catch (error) {
+          console.error("Error saving defaults:", error);
+          alert("Failed to save district defaults.");
+      }
+  };
+
+  const handleOpenStudentSettings = () => {
+      if (!selectedStudent) return;
+      const t = selectedStudent.settings?.theme || districtTheme;
+      const v = selectedStudent.settings?.voice || districtVoice;
+      const l = selectedStudent.settings?.layout || districtLayout;
+      const c = selectedStudent.settings?.aiContext || '';
+      
+      setEditTheme(t);
+      setEditVoiceModel(v);
+      setEditLayout(l);
+      setEditAiContext(c);
+      setShowStudentSettingsModal(true);
+  };
+
+  const handleSaveStudentSettings = async (e) => {
+      e.preventDefault();
+      if (!selectedStudent) return;
+      try {
+          const newSettings = {
+              theme: editTheme,
+              voice: editVoiceModel,
+              layout: editLayout,
+              aiContext: editAiContext.trim()
+          };
+          await updateDoc(doc(db, 'students', selectedStudent.id), {
+              settings: newSettings,
+              lastSync: 'Just now (Settings Updated)'
+          });
+          setSelectedStudent({ ...selectedStudent, settings: newSettings });
+          writeAuditLog('UPDATE_STUDENT_SETTINGS', `Updated device settings for student "${selectedStudent.name}"`);
+          setShowStudentSettingsModal(false);
+          alert("Student settings saved.");
+      } catch (err) {
+          console.error("Failed to save student settings:", err);
+          alert("Failed to save settings.");
+      }
+  };
+
+  const generateAiContext = async () => {
+     if (!selectedStudent) return;
+     if (!confirm("This will download a small AI model to your browser (~1GB) if not already cached. It will run entirely offline. Proceed?")) return;
+
+     setIsGeneratingAiContext(true);
+     setAiGeneratorProgress(0);
+     
+     try {
+         if (!mlcEngineRef.current) {
+             const initProgressCallback = (report) => {
+                 setAiGeneratorProgress(Math.round(report.progress * 100));
+             };
+             mlcEngineRef.current = await CreateWebWorkerMLCEngine(
+                 new Worker(
+                     new URL('./worker.js', import.meta.url), 
+                     {type: 'module'}
+                 ),
+                 "Llama-3.2-1B-Instruct-q4f32_1-MLC", 
+                 { initProgressCallback }
+             );
+         }
+
+         const prompt = `Write a short, professional, and descriptive 2-in-1 paragraph about a student named ${selectedStudent.name}. Include plausible general interests logically suitable for school-aged learners, and mention that the AI should act as a supportive, encouraging, and clear communicator. Keep it under 50 words. Do not use asterisks or formatting.`;
+         
+         const reply = await mlcEngineRef.current.chat.completions.create({
+             messages: [{ role: "user", content: prompt }],
+         });
+         
+         setEditAiContext(reply.choices[0].message.content.trim());
+     } catch (err) {
+         console.error("AI Generation Error", err);
+         alert("Failed to generate AI context. Ensure your browser supports WebGPU and you have enough memory.");
+     } finally {
+         setIsGeneratingAiContext(false);
+         setAiGeneratorProgress(0);
+     }
+  };
+
   // --- UI: Loading State ---
   if (authLoading) {
     return (
@@ -1419,9 +1534,14 @@ export default function App() {
                           <span className="flex items-center gap-1.5 bg-slate-100 px-3 py-1 rounded-full"><Clock size={16} className="text-slate-600" /> Last synced: {selectedStudent.lastSync}</span>
                         </div>
                       </div>
-                      <button onClick={() => setShowPushModal(true)} disabled={selectedStudent.device === 'Unlinked' || selectedStudent.hasLicense === false} className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 font-bold rounded-lg hover:bg-blue-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                        <Send size={18} /> Push to Device
-                      </button>
+                      <div className="flex gap-2">
+                        <button onClick={handleOpenStudentSettings} className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 font-bold rounded-lg hover:bg-slate-200 transition-colors shadow-sm">
+                          <Settings2 size={18} /> Device Settings
+                        </button>
+                        <button onClick={() => setShowPushModal(true)} disabled={selectedStudent.device === 'Unlinked' || selectedStudent.hasLicense === false} className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 font-bold rounded-lg hover:bg-blue-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                          <Send size={18} /> Push to Device
+                        </button>
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -1604,6 +1724,49 @@ export default function App() {
                            </div>
                        </div>
                     </div>
+
+                    {(userProfile?.role === 'district_admin' || userProfile?.role === 'super_admin') && (
+                       <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-8">
+                          <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-6 border-b border-slate-100 pb-4">
+                             <div>
+                               <h3 className="text-lg font-bold text-slate-800">District Device Defaults</h3>
+                               <p className="text-sm text-slate-500">Set the default device preferences used for newly created students.</p>
+                             </div>
+                             <button onClick={handleSaveDistrictDefaults} className="px-5 py-2.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors shadow-sm whitespace-nowrap">
+                                Save Defaults
+                             </button>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                              <div>
+                                  <label className="block text-sm font-bold text-slate-700 mb-1 flex items-center gap-2"><Monitor size={16} className="text-blue-500"/> Theme Mode</label>
+                                  <select value={districtTheme} onChange={e => setDistrictTheme(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none">
+                                      <option value="Light">Light Theme</option>
+                                      <option value="Dark">Dark Theme</option>
+                                      <option value="System">Auto (System)</option>
+                                  </select>
+                              </div>
+                              <div>
+                                  <label className="block text-sm font-bold text-slate-700 mb-1 flex items-center gap-2"><Volume2 size={16} className="text-blue-500"/> Voice Model</label>
+                                  <select value={districtVoice} onChange={e => setDistrictVoice(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none">
+                                      <option value="Standard Female">Standard Female</option>
+                                      <option value="Standard Male">Standard Male</option>
+                                      <option value="Premium Female (US)">Premium Female (US)</option>
+                                      <option value="Premium Male (US)">Premium Male (US)</option>
+                                      <option value="British Female">British Female</option>
+                                      <option value="British Male">British Male</option>
+                                  </select>
+                              </div>
+                              <div>
+                                  <label className="block text-sm font-bold text-slate-700 mb-1 flex items-center gap-2"><LayoutGrid size={16} className="text-blue-500"/> Layout Options</label>
+                                  <select value={districtLayout} onChange={e => setDistrictLayout(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none">
+                                      <option value="Grid">Standard Grid</option>
+                                      <option value="List">List View</option>
+                                      <option value="Large Icons">Large Icons (Accessibility)</option>
+                                  </select>
+                              </div>
+                          </div>
+                       </div>
+                    )}
 
                     {(userProfile?.role === 'district_admin' || userProfile?.role === 'super_admin') && (
                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-8">
@@ -1865,6 +2028,74 @@ export default function App() {
       </div>
 
       {/* --- OVERLAY MODALS --- */}
+      {showStudentSettingsModal && selectedStudent && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                  <div className="p-6 bg-slate-100 border-b border-slate-200 flex justify-between items-center shrink-0">
+                      <div>
+                          <h3 className="text-xl font-bold text-slate-800">Pre-Configure Device Options</h3>
+                          <p className="text-slate-500 text-sm mt-1">Settings for <b>{selectedStudent.name}</b>'s device.</p>
+                      </div>
+                      <button onClick={() => setShowStudentSettingsModal(false)} className="text-slate-400 hover:text-slate-700 p-2 rounded-full bg-white shadow-sm"><X size={20}/></button>
+                  </div>
+                  <form onSubmit={handleSaveStudentSettings} className="p-6 space-y-6 overflow-y-auto">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div>
+                              <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2"><Monitor size={16} className="text-blue-500"/> Theme Mode</label>
+                              <select value={editTheme} onChange={e => setEditTheme(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none">
+                                  <option value="Light">Light Theme</option>
+                                  <option value="Dark">Dark Theme</option>
+                                  <option value="System">Auto (System)</option>
+                              </select>
+                          </div>
+                          <div>
+                              <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2"><Volume2 size={16} className="text-blue-500"/> Voice Model</label>
+                              <select value={editVoiceModel} onChange={e => setEditVoiceModel(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none">
+                                  <option value="Standard Female">Standard Female</option>
+                                  <option value="Standard Male">Standard Male</option>
+                                  <option value="Premium Female (US)">Premium Female (US)</option>
+                                  <option value="Premium Male (US)">Premium Male (US)</option>
+                                  <option value="British Female">British Female</option>
+                                  <option value="British Male">British Male</option>
+                              </select>
+                          </div>
+                          <div className="md:col-span-2">
+                              <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2"><LayoutGrid size={16} className="text-blue-500"/> Layout Options</label>
+                              <select value={editLayout} onChange={e => setEditLayout(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none">
+                                  <option value="Grid">Standard Grid</option>
+                                  <option value="List">List View</option>
+                                  <option value="Large Icons">Large Icons (Accessibility)</option>
+                              </select>
+                          </div>
+                      </div>
+
+                      <div className="border-t border-slate-200 pt-6">
+                          <div className="flex justify-between items-end mb-2">
+                              <label className="block text-sm font-bold text-slate-700 flex items-center gap-2">
+                                  <Sparkles size={16} className="text-purple-500"/> AI Background Context
+                              </label>
+                              <button type="button" onClick={generateAiContext} disabled={isGeneratingAiContext} className="text-xs bg-purple-100 text-purple-700 hover:bg-purple-200 px-3 py-1.5 rounded-lg font-bold flex items-center gap-1 transition-colors disabled:opacity-50">
+                                  {isGeneratingAiContext ? <><Loader2 size={12} className="animate-spin"/> Generating ({aiGeneratorProgress}%)...</> : <><Sparkles size={12}/> Auto-Generate</>}
+                              </button>
+                          </div>
+                          <textarea 
+                              value={editAiContext} 
+                              onChange={e => setEditAiContext(e.target.value)}
+                              placeholder="e.g. 8-year old who loves dinosaurs and trucks..."
+                              className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 outline-none min-h-[100px] text-sm"
+                          />
+                          <p className="text-[10px] text-slate-500 mt-2 font-medium">Used to personalize predictive text hints and emotional matching. Runs 100% offline securely.</p>
+                      </div>
+
+                      <div className="pt-4 flex gap-3 border-t border-slate-100">
+                          <button type="button" onClick={() => setShowStudentSettingsModal(false)} className="flex-1 py-3.5 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-colors">Cancel</button>
+                          <button type="submit" className="flex-1 py-3.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors shadow-md">Save Settings</button>
+                      </div>
+                  </form>
+              </div>
+          </div>
+      )}
+
       {showNewStudentModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
