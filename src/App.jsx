@@ -986,19 +986,50 @@ export default function App() {
     if (!pageToPush) return;
 
     try {
-      const newStudentPage = {
-         id: `managed_${pageToPush.id}_${Date.now()}`, 
-         label: pageToPush.label,
-         icon: pageToPush.icon,
-         color: pageToPush.color || "bg-slate-100",
-         tiles: pageToPush.tiles || [],
-         type: 'managed' 
-      };
-      const updatedPages = [...(selectedStudent.pages || []), newStudentPage];
+      const pushPrefix = Date.now();
+      let pagesToAdd = [];
+
+      if (pageToPush.pages && Array.isArray(pageToPush.pages) && pageToPush.pages.length > 0) {
+          // Unfold the package and rewrite all internal links to prevent collisions
+          pagesToAdd = pageToPush.pages.map(page => {
+              const newPageId = `managed_${pushPrefix}_${page.id}`;
+              
+              // Rewrite linkToPage references inside tiles
+              const mappedTiles = (page.tiles || []).map(tile => {
+                  if (tile.linkToPage) {
+                      return { ...tile, linkToPage: `managed_${pushPrefix}_${tile.linkToPage}` };
+                  }
+                  return tile;
+              });
+
+              return {
+                  id: newPageId,
+                  label: page.label,
+                  icon: page.icon,
+                  color: page.color || "bg-slate-100",
+                  tiles: mappedTiles,
+                  type: 'managed',
+                  hidden: page.hidden || false
+              };
+          });
+      } else {
+          // Standard single-page push
+          pagesToAdd = [{
+             id: `managed_${pageToPush.id}_${pushPrefix}`, 
+             label: pageToPush.label,
+             icon: pageToPush.icon,
+             color: pageToPush.color || "bg-slate-100",
+             tiles: pageToPush.tiles || [],
+             type: 'managed',
+             hidden: false 
+          }];
+      }
+
+      const updatedPages = [...(selectedStudent.pages || []), ...pagesToAdd];
       await updateDoc(doc(db, 'students', selectedStudent.id), {
         pages: updatedPages, lastSync: 'Just now (Update Pushed)'
       });
-      writeAuditLog('PUSH_PAGE', `Pushed master page "${pageToPush.label}" to student "${selectedStudent.name}"`);
+      writeAuditLog('PUSH_PAGE', `Pushed ${pagesToAdd.length > 1 ? 'package' : 'master page'} "${pageToPush.label}" to student "${selectedStudent.name}"`);
       setShowPushModal(false);
       setSelectedLibraryPageId('');
     } catch (error) {
@@ -1052,21 +1083,24 @@ export default function App() {
 
         if (pagesToImport.length === 0) throw new Error("File does not contain valid EasySpeak page data.");
 
-        // Bulk insert all pages in this file
-        await Promise.all(pagesToImport.map(page => 
-           addDoc(collection(db, 'library'), {
-             orgId: userProfile.orgId,
-             label: page.label || "Imported Page",
-             icon: page.icon || "📄",
-             color: page.color || "bg-slate-100",
-             tileCount: page.tiles ? page.tiles.length : 0,
-             tiles: page.tiles || [],
-             lastEdited: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-           })
-        ));
+        // Group multiple pages into a single library package
+        const mainPage = pagesToImport[0];
+        const isPackage = pagesToImport.length > 1;
 
-        writeAuditLog('IMPORT_MASTER_PAGE', `Imported ${pagesToImport.length} master page(s) into the district library from JSON`);
-        alert(`Successfully imported ${pagesToImport.length} page(s)!`);
+        await addDoc(collection(db, 'library'), {
+            orgId: userProfile.orgId,
+            label: mainPage.label || "Imported Package",
+            icon: mainPage.icon || "📄",
+            color: mainPage.color || "bg-slate-100",
+            tileCount: mainPage.tiles ? mainPage.tiles.length : 0,
+            tiles: mainPage.tiles || [],
+            pages: isPackage ? pagesToImport : null, // Store all sub-pages
+            pageCount: isPackage ? pagesToImport.length : 1,
+            lastEdited: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+        });
+
+        writeAuditLog('IMPORT_MASTER_PAGE', `Imported ${isPackage ? 'multi-page package' : 'master page'} into the district library from JSON`);
+        alert(`Successfully imported ${isPackage ? 'package' : 'page'}!`);
       } catch (err) {
         console.error(err);
         alert("Error importing page: " + err.message);
@@ -1119,34 +1153,21 @@ export default function App() {
   const handleSaveTemplate = async () => {
     if (!selectedTemplate || !selectedTemplate.tiles) return;
     try {
-      if (selectedTemplate.pages && Array.isArray(selectedTemplate.pages) && selectedTemplate.pages.length > 1) {
-          // Bulk import multi-page template
-          await Promise.all(selectedTemplate.pages.map(page => 
-            addDoc(collection(db, 'library'), {
-                orgId: userProfile.orgId,
-                label: page.label || "Imported Page",
-                icon: page.icon || "📄",
-                color: page.color || "bg-slate-100",
-                tileCount: page.tiles ? page.tiles.length : 0,
-                tiles: page.tiles || [],
-                lastEdited: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-            })
-          ));
-          writeAuditLog('IMPORT_MASTER_PAGE', `Imported ${selectedTemplate.pages.length} pages from template "${selectedTemplate.label}" into district library`);
-      } else {
-          // Import single-page template (or single-page wrapped in pages)
-          const tilesToSave = (selectedTemplate.pages && selectedTemplate.pages.length === 1) ? selectedTemplate.pages[0].tiles : selectedTemplate.tiles;
-          await addDoc(collection(db, 'library'), {
-            orgId: userProfile.orgId,
-            label: selectedTemplate.label,
-            icon: selectedTemplate.icon,
-            color: selectedTemplate.color,
-            tileCount: selectedTemplate.tileCount,
-            tiles: tilesToSave,
-            lastEdited: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-          });
-          writeAuditLog('IMPORT_MASTER_PAGE', `Imported pre-made template "${selectedTemplate.label}" into district library`);
-      }
+      const isPackage = selectedTemplate.pages && Array.isArray(selectedTemplate.pages) && selectedTemplate.pages.length > 1;
+      
+      await addDoc(collection(db, 'library'), {
+        orgId: userProfile.orgId,
+        label: selectedTemplate.label,
+        icon: selectedTemplate.icon,
+        color: selectedTemplate.color,
+        tileCount: selectedTemplate.tileCount,
+        tiles: (isPackage && selectedTemplate.pages.length === 1) ? selectedTemplate.pages[0].tiles : selectedTemplate.tiles,
+        pages: isPackage ? selectedTemplate.pages : null, // Store all sub-pages directly
+        pageCount: isPackage ? selectedTemplate.pages.length : 1,
+        lastEdited: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      });
+      
+      writeAuditLog('IMPORT_MASTER_PAGE', `Imported pre-made ${isPackage ? 'package' : 'template'} "${selectedTemplate.label}" into district library`);
       setShowTemplateModal(false);
       setSelectedTemplate(null);
     } catch(err) { console.error("Error creating template page:", err); }
@@ -1901,7 +1922,7 @@ export default function App() {
                         </div>
                         <h3 className="font-bold text-lg text-slate-800 mb-1 truncate">{lib.label}</h3>
                         <div className="flex items-center justify-between text-sm text-slate-500 mt-4 pt-4 border-t border-slate-100">
-                          <span className="flex items-center gap-1.5"><LayoutGrid size={14}/> {lib.tileCount || 0} Tiles</span>
+                          <span className="flex items-center gap-1.5"><LayoutGrid size={14}/> {lib.tileCount || 0} Tiles {lib.pageCount > 1 ? ` • ${lib.pageCount} Pages` : ''}</span>
                           <span>Edited {lib.lastEdited}</span>
                         </div>
                       </div>
