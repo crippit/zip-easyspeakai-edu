@@ -1,0 +1,412 @@
+{
+  "pages": [
+    {
+      "id": "p_hs_classroom_main",
+      "label": "High School Classroom",
+      "icon": "🏫",
+      "color": "bg-slate-100",
+      "type": "local",
+      "hidden": false,
+      "tiles": [
+        {
+          "id": "t_hs_01",
+          "label": "I",
+          "phrase": "I",
+          "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E🙋‍♂️%3C/text%3E%3C/svg%3E",
+          "type": "image",
+          "color": "bg-yellow-200"
+        },
+        {
+          "id": "t_hs_02",
+          "label": "Me",
+          "phrase": "me",
+          "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E🙋%3C/text%3E%3C/svg%3E",
+          "type": "image",
+          "color": "bg-yellow-200"
+        },
+        {
+          "id": "t_hs_03",
+          "label": "You",
+          "phrase": "you",
+          "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E🫵%3C/text%3E%3C/svg%3E",
+          "type": "image",
+          "color": "bg-yellow-200"
+        },
+        {
+          "id": "t_hs_04",
+          "label": "Teacher",
+          "phrase": "Teacher",
+          "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E🧑‍🏫%3C/text%3E%3C/svg%3E",
+          "type": "image",
+          "color": "bg-yellow-200"
+        },
+        {
+          "id": "t_hs_05",
+          "label": "Group",
+          "phrase": "Group",
+          "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E👥%3C/text%3E%3C/svg%3E",
+          "type": "image",
+          "color": "bg-yellow-200",
+          "variants": ["group", "groups"]
+        },
+        {
+          "id": "t_hs_06",
+          "label": "Want",
+          "phrase": "I want",
+          "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E🤲%3C/text%3E%3C/svg%3E",
+          "type": "image",
+          "color": "bg-green-200",
+          "variants": ["want", "wants", "wanting", "wanted"]
+        },
+        {
+          "id": "t_hs_07",
+          "label": "Need",
+          "phrase": "I need",
+          "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E‼️%3C/text%3E%3C/svg%3E",
+          "type": "image",
+          "color": "bg-green-200",
+          "variants": ["need", "needs", "needing", "needed"]
+        },
+        {
+          "id": "t_hs_08",
+          "label": "Help",
+          "phrase": "I need help",
+          "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E🆘%3C/text%3E%3C/svg%3E",
+          "type": "image",
+          "color": "bg-pink-200"
+        },
+        {
+          "id": "t_hs_09",
+          "label": "Read",
+          "phrase": "read",
+          "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E📖%3C/text%3E%3C/svg%3E",
+          "type": "image",
+          "color": "bg-green-200",
+          "variants": ["read", "reads", "reading"]
+        },
+        {
+          "id": "t_hs_10",
+          "label": "Write",
+          "phrase": "write",
+          "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E✍️%3C/text%3E%3C/svg%3E",
+          "type": "image",
+          "color": "bg-green-200",
+          "variants": ["write", "writes", "writing", "wrote"]
+        },
+        {
+          "id": "t_hs_11",
+          "label": "Think",
+          "phrase": "think",
+          "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E🧠%3C/text%3E%3C/svg%3E",
+          "type": "image",
+          "color": "bg-green-200",
+          "variants": ["think", "thinks", "thinking", "thought"]
+        },
+        {
+          "id": "t_hs_12",
+          "label": "Listen",
+          "phrase": "listen",
+          "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E👂%3C/text%3E%3C/svg%3E",
+          "type": "image",
+          "color": "bg-green-200",
+          "variants": ["listen", "listens", "listening", "listened"]
+        },
+        {
+          "id": "t_hs_13",
+          "label": "Yes",
+          "phrase": "Yes",
+          "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E👍%3C/text%3E%3C/svg%3E",
+          "type": "image",
+          "color": "bg-pink-200"
+        },
+        {
+          "id": "t_hs_14",
+          "label": "No",
+          "phrase": "No",
+          "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E👎%3C/text%3E%3C/svg%3E",
+          "type": "image",
+          "color": "bg-red-200"
+        },
+        {
+          "id": "t_hs_15",
+          "label": "Chromebook",
+          "phrase": "Chromebook",
+          "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E💻%3C/text%3E%3C/svg%3E",
+          "type": "image",
+          "color": "bg-orange-200",
+          "variants": ["chromebook", "chromebooks"]
+        },
+        {
+          "id": "t_hs_16",
+          "label": "Notebook",
+          "phrase": "Notebook",
+          "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E📓%3C/text%3E%3C/svg%3E",
+          "type": "image",
+          "color": "bg-orange-200",
+          "variants": ["notebook", "notebooks"]
+        },
+        {
+          "id": "t_hs_17",
+          "label": "Calculator",
+          "phrase": "Calculator",
+          "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E🧮%3C/text%3E%3C/svg%3E",
+          "type": "image",
+          "color": "bg-orange-200",
+          "variants": ["calculator", "calculators"]
+        },
+        {
+          "id": "t_hs_18",
+          "label": "Pen",
+          "phrase": "Pen",
+          "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E🖊️%3C/text%3E%3C/svg%3E",
+          "type": "image",
+          "color": "bg-orange-200",
+          "variants": ["pen", "pens", "pencil", "pencils"]
+        },
+        {
+          "id": "t_hs_19",
+          "label": "Math",
+          "phrase": "Math",
+          "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E➗%3C/text%3E%3C/svg%3E",
+          "type": "image",
+          "color": "bg-blue-200",
+          "linkToPage": "p_math",
+          "isSilent": true
+        },
+        {
+          "id": "t_hs_20",
+          "label": "Science",
+          "phrase": "Science",
+          "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E🧪%3C/text%3E%3C/svg%3E",
+          "type": "image",
+          "color": "bg-green-200",
+          "linkToPage": "p_science",
+          "isSilent": true
+        },
+        {
+          "id": "t_hs_21",
+          "label": "English",
+          "phrase": "English",
+          "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E📚%3C/text%3E%3C/svg%3E",
+          "type": "image",
+          "color": "bg-yellow-200",
+          "linkToPage": "p_english",
+          "isSilent": true
+        },
+        {
+          "id": "t_hs_22",
+          "label": "History",
+          "phrase": "History",
+          "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E🏺%3C/text%3E%3C/svg%3E",
+          "type": "image",
+          "color": "bg-orange-200",
+          "linkToPage": "p_history",
+          "isSilent": true
+        },
+        {
+          "id": "t_hs_23",
+          "label": "Art",
+          "phrase": "Art",
+          "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E🎨%3C/text%3E%3C/svg%3E",
+          "type": "image",
+          "color": "bg-purple-200",
+          "linkToPage": "p_art",
+          "isSilent": true
+        },
+        {
+          "id": "t_hs_24",
+          "label": "Finish",
+          "phrase": "I am finished",
+          "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E✅%3C/text%3E%3C/svg%3E",
+          "type": "image",
+          "color": "bg-red-200",
+          "variants": ["finish", "finished", "finishing"]
+        },
+        {
+          "id": "t_hs_25",
+          "label": "Question",
+          "phrase": "I have a question",
+          "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E❓%3C/text%3E%3C/svg%3E",
+          "type": "image",
+          "color": "bg-slate-200",
+          "variants": ["question", "questions"]
+        },
+        {
+          "id": "t_hs_26",
+          "label": "Answer",
+          "phrase": "I have the answer",
+          "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E💡%3C/text%3E%3C/svg%3E",
+          "type": "image",
+          "color": "bg-slate-200",
+          "variants": ["answer", "answers"]
+        },
+        {
+          "id": "t_hs_27",
+          "label": "Hard",
+          "phrase": "This is hard",
+          "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E🧗%3C/text%3E%3C/svg%3E",
+          "type": "image",
+          "color": "bg-blue-200"
+        },
+        {
+          "id": "t_hs_28",
+          "label": "Easy",
+          "phrase": "This is easy",
+          "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E🍰%3C/text%3E%3C/svg%3E",
+          "type": "image",
+          "color": "bg-blue-200"
+        },
+        {
+          "id": "t_hs_29",
+          "label": "Understand",
+          "phrase": "I understand",
+          "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E🆗%3C/text%3E%3C/svg%3E",
+          "type": "image",
+          "color": "bg-blue-200"
+        },
+        {
+          "id": "t_hs_30",
+          "label": "Don't Know",
+          "phrase": "I don't know",
+          "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E🤷%3C/text%3E%3C/svg%3E",
+          "type": "image",
+          "color": "bg-blue-200"
+        },
+        {
+          "id": "t_hs_31",
+          "label": "Break",
+          "phrase": "I need a break",
+          "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E☕%3C/text%3E%3C/svg%3E",
+          "type": "image",
+          "color": "bg-red-200"
+        },
+        {
+          "id": "t_hs_32",
+          "label": "Restroom",
+          "phrase": "I need to use the restroom",
+          "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E🚽%3C/text%3E%3C/svg%3E",
+          "type": "image",
+          "color": "bg-slate-200"
+        },
+        {
+          "id": "t_hs_33",
+          "label": "Why",
+          "phrase": "Why?",
+          "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E❔%3C/text%3E%3C/svg%3E",
+          "type": "image",
+          "color": "bg-slate-200"
+        },
+        {
+          "id": "t_hs_34",
+          "label": "How",
+          "phrase": "How?",
+          "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E⚙️%3C/text%3E%3C/svg%3E",
+          "type": "image",
+          "color": "bg-slate-200"
+        }
+      ]
+    },
+    {
+      "id": "p_math",
+      "label": "Math Vocabulary",
+      "icon": "🔢",
+      "color": "bg-blue-100",
+      "type": "local",
+      "hidden": true,
+      "tiles": [
+        { "id": "t_math_01", "label": "Back", "phrase": "", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E⬅️%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-slate-200", "linkToPage": "p_hs_classroom_main", "isSilent": true },
+        { "id": "t_math_02", "label": "Add", "phrase": "add", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E➕%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-green-200", "variants": ["add", "plus", "adding", "added"] },
+        { "id": "t_math_03", "label": "Subtract", "phrase": "subtract", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E➖%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-green-200", "variants": ["subtract", "minus", "subtracting", "subtracted"] },
+        { "id": "t_math_04", "label": "Multiply", "phrase": "multiply", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E✖️%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-green-200", "variants": ["multiply", "times", "multiplying"] },
+        { "id": "t_math_05", "label": "Divide", "phrase": "divide", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E➗%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-green-200", "variants": ["divide", "divided", "dividing"] },
+        { "id": "t_math_06", "label": "Equals", "phrase": "equals", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E🟰%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-white" },
+        { "id": "t_math_07", "label": "Fraction", "phrase": "fraction", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E🍰%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-white", "variants": ["fraction", "fractions"] },
+        { "id": "t_math_08", "label": "Percent", "phrase": "percent", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E٪%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-white" },
+        { "id": "t_math_09", "label": "Solve", "phrase": "solve", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E🔍%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-green-200", "variants": ["solve", "solving", "solved"] },
+        { "id": "t_math_10", "label": "Graph", "phrase": "graph", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E📈%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-orange-200", "variants": ["graph", "graphs"] },
+        { "id": "t_math_11", "label": "Geometry", "phrase": "geometry", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E📐%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-orange-200" }
+      ]
+    },
+    {
+      "id": "p_science",
+      "label": "Science Vocabulary",
+      "icon": "🔬",
+      "color": "bg-green-100",
+      "type": "local",
+      "hidden": true,
+      "tiles": [
+        { "id": "t_sci_01", "label": "Back", "phrase": "", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E⬅️%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-slate-200", "linkToPage": "p_hs_classroom_main", "isSilent": true },
+        { "id": "t_sci_02", "label": "Experiment", "phrase": "experiment", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E🧪%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-green-200", "variants": ["experiment", "experiments", "experimenting"] },
+        { "id": "t_sci_03", "label": "Observe", "phrase": "observe", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E🧐%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-green-200", "variants": ["observe", "observes", "observing", "observed"] },
+        { "id": "t_sci_04", "label": "Hypothesis", "phrase": "hypothesis", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E💭%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-white" },
+        { "id": "t_sci_05", "label": "Data", "phrase": "data", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E📊%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-white" },
+        { "id": "t_sci_06", "label": "Microscope", "phrase": "microscope", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E🔬%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-orange-200" },
+        { "id": "t_sci_07", "label": "Chemical", "phrase": "chemical", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E☢️%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-orange-200", "variants": ["chemical", "chemicals"] },
+        { "id": "t_sci_08", "label": "Biology", "phrase": "biology", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E🌿%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-blue-100" },
+        { "id": "t_sci_09", "label": "Physics", "phrase": "physics", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E⚡%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-blue-100" },
+        { "id": "t_sci_10", "label": "Space", "phrase": "space", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E🚀%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-blue-100" },
+        { "id": "t_sci_11", "label": "Lab", "phrase": "lab", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E🥽%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-orange-200" }
+      ]
+    },
+    {
+      "id": "p_english",
+      "label": "English Vocabulary",
+      "icon": "📖",
+      "color": "bg-yellow-100",
+      "type": "local",
+      "hidden": true,
+      "tiles": [
+        { "id": "t_eng_01", "label": "Back", "phrase": "", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E⬅️%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-slate-200", "linkToPage": "p_hs_classroom_main", "isSilent": true },
+        { "id": "t_eng_02", "label": "Story", "phrase": "story", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E📔%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-white", "variants": ["story", "stories"] },
+        { "id": "t_eng_03", "label": "Poem", "phrase": "poem", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E✒️%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-white", "variants": ["poem", "poems", "poetry"] },
+        { "id": "t_eng_04", "label": "Character", "phrase": "character", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E🎭%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-white", "variants": ["character", "characters"] },
+        { "id": "t_eng_05", "label": "Theme", "phrase": "theme", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E💡%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-blue-200" },
+        { "id": "t_eng_06", "label": "Essay", "phrase": "essay", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E📄%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-orange-200", "variants": ["essay", "essays"] },
+        { "id": "t_eng_07", "label": "Sentence", "phrase": "sentence", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E🔡%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-white", "variants": ["sentence", "sentences"] },
+        { "id": "t_eng_08", "label": "Analyze", "phrase": "analyze", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E🔍%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-green-200", "variants": ["analyze", "analyzing", "analyzed"] },
+        { "id": "t_eng_09", "label": "Cite", "phrase": "cite sources", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E📌%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-green-200", "variants": ["cite", "citing", "citation"] },
+        { "id": "t_eng_10", "label": "Metaphor", "phrase": "metaphor", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E🌈%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-blue-200" }
+      ]
+    },
+    {
+      "id": "p_history",
+      "label": "History Vocabulary",
+      "icon": "🏺",
+      "color": "bg-orange-100",
+      "type": "local",
+      "hidden": true,
+      "tiles": [
+        { "id": "t_hist_01", "label": "Back", "phrase": "", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E⬅️%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-slate-200", "linkToPage": "p_hs_classroom_main", "isSilent": true },
+        { "id": "t_hist_02", "label": "Past", "phrase": "in the past", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E🕰️%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-blue-200" },
+        { "id": "t_hist_03", "label": "Map", "phrase": "map", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E🗺️%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-orange-200", "variants": ["map", "maps"] },
+        { "id": "t_hist_04", "label": "Timeline", "phrase": "timeline", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E⏳%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-white" },
+        { "id": "t_hist_05", "label": "Culture", "phrase": "culture", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E🌍%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-white" },
+        { "id": "t_hist_06", "label": "Government", "phrase": "government", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E🏛️%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-white" },
+        { "id": "t_hist_07", "label": "Primary Source", "phrase": "primary source", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E📜%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-white" },
+        { "id": "t_hist_08", "label": "War", "phrase": "war", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E⚔️%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-red-200" },
+        { "id": "t_hist_09", "label": "Peace", "phrase": "peace", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E🕊️%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-pink-200" },
+        { "id": "t_hist_10", "label": "Leader", "phrase": "leader", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E👑%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-yellow-200", "variants": ["leader", "leaders"] }
+      ]
+    },
+    {
+      "id": "p_art",
+      "label": "Art Vocabulary",
+      "icon": "🎨",
+      "color": "bg-purple-100",
+      "type": "local",
+      "hidden": true,
+      "tiles": [
+        { "id": "t_art_01", "label": "Back", "phrase": "", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E⬅️%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-slate-200", "linkToPage": "p_hs_classroom_main", "isSilent": true },
+        { "id": "t_art_02", "label": "Paint", "phrase": "paint", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E🖌️%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-green-200", "variants": ["paint", "painting", "paints"] },
+        { "id": "t_art_03", "label": "Draw", "phrase": "draw", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E✏️%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-green-200", "variants": ["draw", "drawing", "draws", "drew"] },
+        { "id": "t_art_04", "label": "Color", "phrase": "color", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E🌈%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-blue-200", "variants": ["color", "colors"] },
+        { "id": "t_art_05", "label": "Shape", "phrase": "shape", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E⬡%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-white", "variants": ["shape", "shapes"] },
+        { "id": "t_art_06", "label": "Texture", "phrase": "texture", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E🧶%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-blue-200" },
+        { "id": "t_art_07", "label": "Design", "phrase": "design", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E📐%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-green-200", "variants": ["design", "designing"] },
+        { "id": "t_art_08", "label": "Sculpture", "phrase": "sculpture", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E🗿%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-orange-200" },
+        { "id": "t_art_09", "label": "Gallery", "phrase": "art gallery", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E🖼️%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-orange-200" },
+        { "id": "t_art_10", "label": "Create", "phrase": "create", "image": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='75' font-size='70' text-anchor='middle'%3E✨%3C/text%3E%3C/svg%3E", "type": "image", "color": "bg-green-200", "variants": ["create", "creating", "created"] }
+      ]
+    }
+  ]
+}
