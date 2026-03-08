@@ -39,11 +39,13 @@ import {
   Monitor,
   Volume2,
   Settings2,
-  Sparkles
+  Sparkles,
+  ChevronLeft
 } from 'lucide-react';
 import { CreateWebWorkerMLCEngine } from "@mlc-ai/web-llm";
 import { createAvatar } from '@dicebear/core';
 import { notionists } from '@dicebear/collection';
+import { PREMADE_TEMPLATES } from './data/templates';
 
 /**
  * FIREBASE INITIALIZATION
@@ -129,6 +131,8 @@ export default function App() {
   
   const [showNewPageModal, setShowNewPageModal] = useState(false);
   const [editingLibraryPage, setEditingLibraryPage] = useState(null);
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [newPageTitle, setNewPageTitle] = useState('');
   const [newPageIcon, setNewPageIcon] = useState('📄');
 
@@ -1067,6 +1071,24 @@ export default function App() {
     };
   };
 
+  const handleSaveTemplate = async () => {
+    if (!selectedTemplate) return;
+    try {
+      await addDoc(collection(db, 'library'), {
+        orgId: userProfile.orgId,
+        label: selectedTemplate.label,
+        icon: selectedTemplate.icon,
+        color: selectedTemplate.color,
+        tileCount: selectedTemplate.tileCount,
+        tiles: selectedTemplate.tiles,
+        lastEdited: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      });
+      writeAuditLog('IMPORT_MASTER_PAGE', `Imported pre-made template "${selectedTemplate.label}" into district library`);
+      setShowTemplateModal(false);
+      setSelectedTemplate(null);
+    } catch(err) { console.error("Error creating template page:", err); }
+  };
+
   const handleUpdateLibraryPage = async (e) => {
     e.preventDefault();
     if (!editingLibraryPage) return;
@@ -1536,8 +1558,8 @@ export default function App() {
         </div>
       </header>
 
-      <div className="flex flex-1 overflow-hidden">
-        <aside className="w-64 bg-white border-r border-slate-200 flex flex-col z-20">
+      <div className="flex flex-1 overflow-hidden relative">
+        <aside className="w-64 bg-white border-r border-slate-200 hidden md:flex flex-col z-20">
           <div className="p-4 space-y-1">
             <button onClick={() => setActiveTab('students')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-colors ${activeTab === 'students' ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-50'}`}>
               <Users size={20} /> Caseload
@@ -1566,7 +1588,7 @@ export default function App() {
           </div>
         </aside>
 
-        <main className="flex-1 flex overflow-hidden relative">
+        <main className="flex-1 flex overflow-hidden relative pb-16 md:pb-0">
           {dataLoading && activeTab !== 'system_admin' && activeTab !== 'audit' && (
              <div className="absolute inset-0 bg-white/50 backdrop-blur-sm z-10 flex items-center justify-center">
                  <Loader2 className="animate-spin text-blue-600" size={32} />
@@ -1575,7 +1597,7 @@ export default function App() {
 
           {activeTab === 'students' && (
             <>
-              <div className="w-80 bg-slate-50 border-r border-slate-200 flex flex-col shrink-0">
+              <div className={`w-full md:w-80 bg-slate-50 border-r border-slate-200 flex-col shrink-0 ${selectedStudent ? 'hidden md:flex' : 'flex'}`}>
                 <div className="p-4 border-b border-slate-200 bg-white">
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="font-bold text-slate-800">Caseload ({visibleStudents?.length || 0})</h2>
@@ -1623,9 +1645,12 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="flex-1 bg-white overflow-y-auto">
+              <div className={`flex-1 bg-white overflow-y-auto ${!selectedStudent ? 'hidden md:block' : 'block'}`}>
                 {selectedStudent ? (
-                  <div className="p-8 max-w-5xl mx-auto">
+                  <div className="p-4 sm:p-8 max-w-5xl mx-auto">
+                    <button onClick={() => setSelectedStudent(null)} className="md:hidden flex items-center gap-1 text-slate-500 hover:text-slate-800 font-bold mb-6 mt-2">
+                       <ChevronLeft size={20} /> Back to Caseload
+                    </button>
                     {selectedStudent.hasLicense === false && (
                        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3 text-red-700 shadow-sm">
                           <AlertCircle className="shrink-0 mt-0.5" size={24} />
@@ -1778,6 +1803,9 @@ export default function App() {
                   </div>
                   <div className="flex gap-2 w-full md:w-auto">
                     <input type="file" ref={libraryUploadRef} onChange={handleLibraryUpload} accept=".json" className="hidden" />
+                    <button onClick={() => setShowTemplateModal(true)} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 font-bold rounded-lg hover:bg-indigo-100 shadow-sm transition-colors">
+                      <LayoutGrid size={18} /> Browse Templates
+                    </button>
                     <button onClick={() => libraryUploadRef.current?.click()} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 font-bold rounded-lg hover:bg-slate-200 shadow-sm transition-colors">
                       <Upload size={18} /> Upload JSON
                     </button>
@@ -1820,6 +1848,22 @@ export default function App() {
               </div>
             </div>
           )}
+
+          {/* --- Bottom Mobile Navigation --- */}
+          <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 flex items-center justify-around p-3 z-50 pb-safe">
+            <button onClick={() => {setActiveTab('students'); setSelectedStudent(null);}} className={`flex flex-col items-center gap-1 p-2 ${activeTab === 'students' ? 'text-blue-600' : 'text-slate-500 hover:text-slate-800'}`}>
+               <Users size={24} />
+               <span className="text-[10px] font-medium">Caseload</span>
+            </button>
+            <button onClick={() => setActiveTab('library')} className={`flex flex-col items-center gap-1 p-2 ${activeTab === 'library' ? 'text-blue-600' : 'text-slate-500 hover:text-slate-800'}`}>
+               <BookOpen size={24} />
+               <span className="text-[10px] font-medium">Library</span>
+            </button>
+            <button onClick={() => setActiveTab('settings')} className={`flex flex-col items-center gap-1 p-2 ${activeTab === 'settings' ? 'text-blue-600' : 'text-slate-500 hover:text-slate-800'}`}>
+               <Settings size={24} />
+               <span className="text-[10px] font-medium">Settings</span>
+            </button>
+          </nav>
 
           {activeTab === 'settings' && (
             <div className="flex-1 bg-slate-50 p-8 overflow-y-auto flex flex-col items-center">
@@ -1938,8 +1982,9 @@ export default function App() {
                                 <div className="text-xs font-bold uppercase tracking-wider text-blue-500">Active Students</div>
                              </div>
                           </div>
-                          <div className="border border-slate-200 rounded-xl overflow-hidden">
-                            <table className="w-full text-left border-collapse">
+                          <div className="border border-slate-200 rounded-xl overflow-hidden block">
+                             <div className="overflow-x-auto">
+                                <table className="w-full text-left border-collapse min-w-[500px]">
                                <thead className="bg-slate-50 border-b border-slate-200 text-xs uppercase tracking-wider text-slate-500">
                                   <tr>
                                      <th className="p-4 font-bold">Student Profile</th>
@@ -1965,7 +2010,8 @@ export default function App() {
                                      <tr><td colSpan="3" className="p-6 text-center text-slate-400">No students in district yet.</td></tr>
                                   )}
                                </tbody>
-                            </table>
+                             </table>
+                            </div>
                           </div>
                        </div>
                     )}
@@ -2432,6 +2478,71 @@ export default function App() {
                <div><label className="block text-sm font-bold text-slate-700 mb-1">Message Body</label><textarea required rows={4} value={announceMessage} onChange={e => setAnnounceMessage(e.target.value)} placeholder="Type your message here..." className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all resize-none" ></textarea></div>
                <div className="pt-4 flex gap-3"><button type="button" onClick={() => setShowAnnounceModal(false)} className="flex-1 py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-colors">Cancel</button><button type="submit" className="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-colors shadow-md flex items-center justify-center gap-2"><Send size={18} /> Send</button></div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {showTemplateModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl h-[80vh] overflow-hidden flex flex-col md:flex-row">
+            {/* Left Sidebar: Template Selection */}
+            <div className="w-full md:w-1/3 bg-slate-50 border-r border-slate-200 flex flex-col h-full">
+               <div className="p-6 bg-white border-b border-slate-200 flex justify-between items-center">
+                 <div>
+                    <h3 className="text-xl font-bold flex items-center gap-2"><LayoutGrid size={20}/> Preset Library</h3>
+                    <p className="text-slate-500 text-sm mt-1">Select a template to preview.</p>
+                 </div>
+                 <button onClick={() => setShowTemplateModal(false)} className="text-slate-400 hover:text-slate-600 p-2 rounded-full md:hidden"><X size={20}/></button>
+               </div>
+               <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                 {PREMADE_TEMPLATES.map(template => (
+                    <button key={template.id} onClick={() => setSelectedTemplate(template)} className={`w-full text-left p-4 rounded-2xl transition-all border ${selectedTemplate?.id === template.id ? 'bg-white border-blue-200 shadow-sm ring-1 ring-blue-500' : 'bg-transparent border-transparent hover:bg-white hover:border-slate-200'}`}>
+                       <div className="flex items-center gap-3">
+                          <div className={`w-12 h-12 ${template.color} rounded-xl flex items-center justify-center text-2xl shadow-inner`}>{template.icon}</div>
+                          <div>
+                             <h4 className="font-bold text-slate-800">{template.label}</h4>
+                             <p className="text-xs text-slate-500">{template.tileCount} Tiles</p>
+                          </div>
+                       </div>
+                    </button>
+                 ))}
+               </div>
+            </div>
+
+            {/* Right Area: Preview and Actions */}
+            <div className="w-full md:w-2/3 bg-white flex flex-col h-full">
+               {selectedTemplate ? (
+                 <>
+                    <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-white z-10 relative shadow-sm">
+                       <div>
+                          <h3 className="text-2xl font-bold text-slate-900 flex items-center gap-2">{selectedTemplate.icon} {selectedTemplate.label}</h3>
+                          <p className="text-slate-500 text-sm">Preview mode</p>
+                       </div>
+                       <div className="flex items-center gap-3">
+                          <button onClick={() => setShowTemplateModal(false)} className="px-4 py-2 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-colors hidden md:block">Cancel</button>
+                          <button onClick={handleSaveTemplate} className="px-5 py-2.5 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-colors shadow-sm flex items-center gap-2"><Plus size={18}/> Add to District</button>
+                       </div>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-4 sm:p-8 bg-slate-50/50">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 max-w-3xl mx-auto">
+                            {selectedTemplate.tiles.map(tile => (
+                               <div key={tile.id} className="aspect-square rounded-2xl border border-slate-200/50 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05),0_2px_4px_-1px_rgba(0,0,0,0.03)] flex flex-col items-center justify-center p-2 text-center transition-transform hover:scale-105" style={{ backgroundColor: tile.backgroundColor }}>
+                                  <div className="text-4xl sm:text-5xl mb-3 filter drop-shadow-sm">{tile.icon}</div>
+                                  <div className="font-bold text-slate-800 text-[13px] sm:text-[15px] leading-tight px-1">{tile.label}</div>
+                               </div>
+                            ))}
+                        </div>
+                    </div>
+                 </>
+               ) : (
+                 <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-8">
+                     <LayoutGrid size={64} className="mb-4 text-slate-200" />
+                     <p className="text-lg font-bold text-slate-500">Select a template</p>
+                     <p className="text-sm">Choose from the preset library on the left to preview.</p>
+                     <button onClick={() => setShowTemplateModal(false)} className="mt-8 px-4 py-2 bg-slate-50 text-slate-600 font-bold rounded-xl hover:bg-slate-100 transition-colors md:hidden">Close</button>
+                 </div>
+               )}
+            </div>
           </div>
         </div>
       )}
