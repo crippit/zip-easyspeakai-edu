@@ -45,7 +45,6 @@ import {
 import { CreateWebWorkerMLCEngine } from "@mlc-ai/web-llm";
 import { createAvatar } from '@dicebear/core';
 import { notionists } from '@dicebear/collection';
-import { PREMADE_TEMPLATES } from './data/templates';
 
 /**
  * FIREBASE INITIALIZATION
@@ -132,6 +131,8 @@ export default function App() {
   const [showNewPageModal, setShowNewPageModal] = useState(false);
   const [editingLibraryPage, setEditingLibraryPage] = useState(null);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [availableTemplates, setAvailableTemplates] = useState([]);
+  const [loadingTemplate, setLoadingTemplate] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [newPageTitle, setNewPageTitle] = useState('');
   const [newPageIcon, setNewPageIcon] = useState('📄');
@@ -1071,8 +1072,40 @@ export default function App() {
     };
   };
 
+  const openTemplateModal = async () => {
+     setShowTemplateModal(true);
+     setSelectedTemplate(null);
+     if (availableTemplates.length === 0) {
+        setLoadingTemplate(true);
+        try {
+           const res = await fetch('/templates/index.json');
+           const data = await res.json();
+           setAvailableTemplates(data);
+        } catch(err) {
+           console.error("Failed to load template index", err);
+        } finally { setLoadingTemplate(false); }
+     }
+  };
+
+  const handleSelectTemplate = async (templateManifest) => {
+     setSelectedTemplate(templateManifest);
+     if (!templateManifest.tiles) {
+         setLoadingTemplate(true);
+         try {
+             const res = await fetch(`/templates/${templateManifest.file}`);
+             const fullTemplate = await res.json();
+             // Update the local manifest object with the loaded tiles so we don't fetch again
+             const updated = availableTemplates.map(t => t.id === templateManifest.id ? { ...t, tiles: fullTemplate.tiles } : t);
+             setAvailableTemplates(updated);
+             setSelectedTemplate({ ...templateManifest, tiles: fullTemplate.tiles });
+         } catch(err) {
+             console.error("Failed to fetch full template details", err);
+         } finally { setLoadingTemplate(false); }
+     }
+  };
+
   const handleSaveTemplate = async () => {
-    if (!selectedTemplate) return;
+    if (!selectedTemplate || !selectedTemplate.tiles) return;
     try {
       await addDoc(collection(db, 'library'), {
         orgId: userProfile.orgId,
@@ -1803,7 +1836,7 @@ export default function App() {
                   </div>
                   <div className="flex gap-2 w-full md:w-auto">
                     <input type="file" ref={libraryUploadRef} onChange={handleLibraryUpload} accept=".json" className="hidden" />
-                    <button onClick={() => setShowTemplateModal(true)} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 font-bold rounded-lg hover:bg-indigo-100 shadow-sm transition-colors">
+                    <button onClick={openTemplateModal} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 font-bold rounded-lg hover:bg-indigo-100 shadow-sm transition-colors">
                       <LayoutGrid size={18} /> Browse Templates
                     </button>
                     <button onClick={() => libraryUploadRef.current?.click()} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 font-bold rounded-lg hover:bg-slate-200 shadow-sm transition-colors">
@@ -2494,9 +2527,12 @@ export default function App() {
                  </div>
                  <button onClick={() => setShowTemplateModal(false)} className="text-slate-400 hover:text-slate-600 p-2 rounded-full md:hidden"><X size={20}/></button>
                </div>
-               <div className="flex-1 overflow-y-auto p-4 space-y-2">
-                 {PREMADE_TEMPLATES.map(template => (
-                    <button key={template.id} onClick={() => setSelectedTemplate(template)} className={`w-full text-left p-4 rounded-2xl transition-all border ${selectedTemplate?.id === template.id ? 'bg-white border-blue-200 shadow-sm ring-1 ring-blue-500' : 'bg-transparent border-transparent hover:bg-white hover:border-slate-200'}`}>
+               <div className="flex-1 overflow-y-auto p-4 space-y-2 relative">
+                 {loadingTemplate && availableTemplates.length === 0 && (
+                    <div className="absolute inset-0 flex items-center justify-center"><Loader2 className="animate-spin text-slate-400" size={32} /></div>
+                 )}
+                 {availableTemplates.map(template => (
+                    <button key={template.id} onClick={() => handleSelectTemplate(template)} className={`w-full text-left p-4 rounded-2xl transition-all border ${selectedTemplate?.id === template.id ? 'bg-white border-blue-200 shadow-sm ring-1 ring-blue-500' : 'bg-transparent border-transparent hover:bg-white hover:border-slate-200'}`}>
                        <div className="flex items-center gap-3">
                           <div className={`w-12 h-12 ${template.color} rounded-xl flex items-center justify-center text-2xl shadow-inner`}>{template.icon}</div>
                           <div>
@@ -2510,8 +2546,13 @@ export default function App() {
             </div>
 
             {/* Right Area: Preview and Actions */}
-            <div className="w-full md:w-2/3 bg-white flex flex-col h-full">
-               {selectedTemplate ? (
+            <div className="w-full md:w-2/3 bg-white flex flex-col h-full relative">
+               {loadingTemplate && selectedTemplate && !selectedTemplate.tiles && (
+                   <div className="absolute inset-0 bg-white/50 backdrop-blur-sm z-20 flex items-center justify-center">
+                       <Loader2 className="animate-spin text-blue-600" size={48} />
+                   </div>
+               )}
+               {selectedTemplate && selectedTemplate.tiles ? (
                  <>
                     <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-white z-10 relative shadow-sm">
                        <div>

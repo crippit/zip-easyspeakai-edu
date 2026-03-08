@@ -1,0 +1,34 @@
+[
+  {
+    "id": "template_core_words",
+    "file": "core-words.json",
+    "label": "Core Words",
+    "icon": "🏠",
+    "color": "bg-blue-100",
+    "tileCount": 16
+  },
+  {
+    "id": "template_food_drink",
+    "file": "food-drink.json",
+    "label": "Food & Drink",
+    "icon": "🍔",
+    "color": "bg-green-100",
+    "tileCount": 12
+  },
+  {
+    "id": "template_quick_chat",
+    "file": "quick-chat.json",
+    "label": "Quick Chat",
+    "icon": "💬",
+    "color": "bg-purple-100",
+    "tileCount": 8
+  },
+  {
+    "id": "template_school_actions",
+    "file": "school-actions.json",
+    "label": "School Actions",
+    "icon": "🎒",
+    "color": "bg-yellow-100",
+    "tileCount": 12
+  }
+]

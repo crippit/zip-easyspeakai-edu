@@ -1,0 +1,21 @@
+{
+  "id": "template_school_actions",
+  "label": "School Actions",
+  "icon": "🎒",
+  "color": "bg-yellow-100",
+  "tileCount": 12,
+  "tiles": [
+    { "id": "1", "label": "Read", "icon": "📖", "backgroundColor": "#bbf7d0" },
+    { "id": "2", "label": "Write", "icon": "✏️", "backgroundColor": "#bbf7d0" },
+    { "id": "3", "label": "Listen", "icon": "👂", "backgroundColor": "#bbf7d0" },
+    { "id": "4", "label": "Look", "icon": "👀", "backgroundColor": "#bbf7d0" },
+    { "id": "5", "label": "Book", "icon": "📚", "backgroundColor": "#bfdbfe" },
+    { "id": "6", "label": "Paper", "icon": "📄", "backgroundColor": "#bfdbfe" },
+    { "id": "7", "label": "Pencil", "icon": "🖊️", "backgroundColor": "#bfdbfe" },
+    { "id": "8", "label": "Computer", "icon": "💻", "backgroundColor": "#bfdbfe" },
+    { "id": "9", "label": "Bathroom", "icon": "🚽", "backgroundColor": "#fef08a" },
+    { "id": "10", "label": "Break", "icon": "🧘", "backgroundColor": "#fef08a" },
+    { "id": "11", "label": "Need Help", "icon": "🙋", "backgroundColor": "#fecaca" },
+    { "id": "12", "label": "Finished", "icon": "✅", "backgroundColor": "#bbf7d0" }
+  ]
+}
