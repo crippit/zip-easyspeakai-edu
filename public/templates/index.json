@@ -5,7 +5,8 @@
     "label": "Core Words",
     "icon": "🏠",
     "color": "bg-blue-100",
-    "tileCount": 16
+    "tileCount": 16,
+    "pageCount": 1
   },
   {
     "id": "template_food_drink",
@@ -13,7 +14,17 @@
     "label": "Food & Drink",
     "icon": "🍔",
     "color": "bg-green-100",
-    "tileCount": 12
+    "tileCount": 12,
+    "pageCount": 1
+  },
+  {
+    "id": "p_hs_classroom_main",
+    "file": "high_school_detailed.json",
+    "label": "High School Classroom",
+    "icon": "🏫",
+    "color": "bg-slate-100",
+    "tileCount": 34,
+    "pageCount": 6
   },
   {
     "id": "template_quick_chat",
@@ -21,7 +32,8 @@
     "label": "Quick Chat",
     "icon": "💬",
     "color": "bg-purple-100",
-    "tileCount": 8
+    "tileCount": 8,
+    "pageCount": 1
   },
   {
     "id": "template_school_actions",
@@ -29,6 +41,7 @@
     "label": "School Actions",
     "icon": "🎒",
     "color": "bg-yellow-100",
-    "tileCount": 12
+    "tileCount": 12,
+    "pageCount": 1
   }
 ]

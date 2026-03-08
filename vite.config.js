@@ -22,14 +22,23 @@ function templateManifestPlugin() {
         const content = fs.readFileSync(filePath, 'utf-8');
         const json = JSON.parse(content);
 
-        if (json.id && json.label) {
+        let gridData = json;
+        let pageCount = 1;
+        // Handle EasySpeak AAC exported format (which contains a 'pages' array of grids)
+        if (json.pages && Array.isArray(json.pages) && json.pages.length > 0) {
+           gridData = json.pages[0]; // Extract the main page of the export
+           pageCount = json.pages.length;
+        }
+
+        if (gridData.id && gridData.label) {
           indexData.push({
-            id: json.id,
+            id: gridData.id,
             file: file,
-            label: json.label,
-            icon: json.icon || '📄',
-            color: json.color || 'bg-blue-100',
-            tileCount: json.tiles ? json.tiles.length : 0
+            label: gridData.label,
+            icon: gridData.icon || '📄',
+            color: gridData.color || 'bg-blue-100',
+            tileCount: gridData.tiles ? gridData.tiles.length : 0,
+            pageCount: pageCount
           });
         }
       } catch (err) {

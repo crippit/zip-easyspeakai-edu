@@ -1042,27 +1042,31 @@ export default function App() {
     reader.onload = async (evt) => {
       try {
         const data = JSON.parse(evt.target.result);
-        let pageToImport = null;
+        let pagesToImport = [];
 
         if (data.pages && Array.isArray(data.pages) && data.pages.length > 0) {
-           pageToImport = data.pages[0]; 
+           pagesToImport = data.pages; 
         } else if (data.id && data.tiles) {
-           pageToImport = data; 
+           pagesToImport = [data]; 
         }
 
-        if (!pageToImport) throw new Error("File does not contain valid EasySpeak page data.");
+        if (pagesToImport.length === 0) throw new Error("File does not contain valid EasySpeak page data.");
 
-        await addDoc(collection(db, 'library'), {
-          orgId: userProfile.orgId,
-          label: pageToImport.label || "Imported Page",
-          icon: pageToImport.icon || "📄",
-          color: pageToImport.color || "bg-slate-100",
-          tileCount: pageToImport.tiles ? pageToImport.tiles.length : 0,
-          tiles: pageToImport.tiles || [],
-          lastEdited: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-        });
-        writeAuditLog('IMPORT_MASTER_PAGE', `Imported a master page into the district library from JSON`);
-        alert("Page imported successfully!");
+        // Bulk insert all pages in this file
+        await Promise.all(pagesToImport.map(page => 
+           addDoc(collection(db, 'library'), {
+             orgId: userProfile.orgId,
+             label: page.label || "Imported Page",
+             icon: page.icon || "📄",
+             color: page.color || "bg-slate-100",
+             tileCount: page.tiles ? page.tiles.length : 0,
+             tiles: page.tiles || [],
+             lastEdited: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+           })
+        ));
+
+        writeAuditLog('IMPORT_MASTER_PAGE', `Imported ${pagesToImport.length} master page(s) into the district library from JSON`);
+        alert(`Successfully imported ${pagesToImport.length} page(s)!`);
       } catch (err) {
         console.error(err);
         alert("Error importing page: " + err.message);
@@ -1094,10 +1098,18 @@ export default function App() {
          try {
              const res = await fetch(`/templates/${templateManifest.file}`);
              const fullTemplate = await res.json();
-             // Update the local manifest object with the loaded tiles so we don't fetch again
-             const updated = availableTemplates.map(t => t.id === templateManifest.id ? { ...t, tiles: fullTemplate.tiles } : t);
-             setAvailableTemplates(updated);
-             setSelectedTemplate({ ...templateManifest, tiles: fullTemplate.tiles });
+             
+             // Support multi-page templates directly
+             if (fullTemplate.pages && Array.isArray(fullTemplate.pages)) {
+                 const mainPage = fullTemplate.pages[0];
+                 const updated = availableTemplates.map(t => t.id === templateManifest.id ? { ...t, tiles: mainPage.tiles, pages: fullTemplate.pages } : t);
+                 setAvailableTemplates(updated);
+                 setSelectedTemplate({ ...templateManifest, tiles: mainPage.tiles, pages: fullTemplate.pages });
+             } else {
+                 const updated = availableTemplates.map(t => t.id === templateManifest.id ? { ...t, tiles: fullTemplate.tiles } : t);
+                 setAvailableTemplates(updated);
+                 setSelectedTemplate({ ...templateManifest, tiles: fullTemplate.tiles });
+             }
          } catch(err) {
              console.error("Failed to fetch full template details", err);
          } finally { setLoadingTemplate(false); }
@@ -1107,16 +1119,34 @@ export default function App() {
   const handleSaveTemplate = async () => {
     if (!selectedTemplate || !selectedTemplate.tiles) return;
     try {
-      await addDoc(collection(db, 'library'), {
-        orgId: userProfile.orgId,
-        label: selectedTemplate.label,
-        icon: selectedTemplate.icon,
-        color: selectedTemplate.color,
-        tileCount: selectedTemplate.tileCount,
-        tiles: selectedTemplate.tiles,
-        lastEdited: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-      });
-      writeAuditLog('IMPORT_MASTER_PAGE', `Imported pre-made template "${selectedTemplate.label}" into district library`);
+      if (selectedTemplate.pages && Array.isArray(selectedTemplate.pages) && selectedTemplate.pages.length > 1) {
+          // Bulk import multi-page template
+          await Promise.all(selectedTemplate.pages.map(page => 
+            addDoc(collection(db, 'library'), {
+                orgId: userProfile.orgId,
+                label: page.label || "Imported Page",
+                icon: page.icon || "📄",
+                color: page.color || "bg-slate-100",
+                tileCount: page.tiles ? page.tiles.length : 0,
+                tiles: page.tiles || [],
+                lastEdited: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+            })
+          ));
+          writeAuditLog('IMPORT_MASTER_PAGE', `Imported ${selectedTemplate.pages.length} pages from template "${selectedTemplate.label}" into district library`);
+      } else {
+          // Import single-page template (or single-page wrapped in pages)
+          const tilesToSave = (selectedTemplate.pages && selectedTemplate.pages.length === 1) ? selectedTemplate.pages[0].tiles : selectedTemplate.tiles;
+          await addDoc(collection(db, 'library'), {
+            orgId: userProfile.orgId,
+            label: selectedTemplate.label,
+            icon: selectedTemplate.icon,
+            color: selectedTemplate.color,
+            tileCount: selectedTemplate.tileCount,
+            tiles: tilesToSave,
+            lastEdited: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+          });
+          writeAuditLog('IMPORT_MASTER_PAGE', `Imported pre-made template "${selectedTemplate.label}" into district library`);
+      }
       setShowTemplateModal(false);
       setSelectedTemplate(null);
     } catch(err) { console.error("Error creating template page:", err); }
@@ -2537,7 +2567,7 @@ export default function App() {
                           <div className={`w-12 h-12 ${template.color} rounded-xl flex items-center justify-center text-2xl shadow-inner`}>{template.icon}</div>
                           <div>
                              <h4 className="font-bold text-slate-800">{template.label}</h4>
-                             <p className="text-xs text-slate-500">{template.tileCount} Tiles</p>
+                             <p className="text-xs text-slate-500">{template.tileCount} Tiles {template.pageCount > 1 ? ` • ${template.pageCount} Pages` : ''}</p>
                           </div>
                        </div>
                     </button>
